@@ -8,11 +8,12 @@
 //*******************************************************
 
 //-------------------------------------------------------
-// RX DIY "easy-to-solder" E77 E22 dual, STM32WLE5CC
+// TX DIY "easy-to-solder" E77 E22 dual, STM32WLE5CC
 //-------------------------------------------------------
 
 //#define DEVICE_HAS_DIVERSITY // TODO
-#define DEVICE_HAS_OUT
+#define DEVICE_HAS_IN
+#define DEVICE_HAS_SERIAL_OR_COM // serial or COM is selected by pressing BUTTON during power on
 #define DEVICE_HAS_DEBUG_SWUART
 
 
@@ -35,24 +36,36 @@
 
 //-- UARTS
 // UARTB = serial port
-// UART = output port, SBus or whatever
-// UARTC = debug port
+// UARTC = COM (CLI)
+// UARTD = serial2 BT/ESP port
+// UART  = JR bay pin5
+// UARTE = in port, SBus or whatever
+// UARTF = --
+// SWUART= debug port
 
-#define UARTB_USE_UART1_REMAPPED // serial // PB6,PB7
-#define UARTB_BAUD                RX_SERIAL_BAUDRATE
+//#define UARTB_USE_UART2 // serial // PA2,PA3
+//#define UARTB_BAUD                TX_SERIAL_BAUDRATE
+//#define UARTB_USE_TX
+//#define UARTB_TXBUFSIZE           TX_SERIAL_TXBUFSIZE
+//#define UARTB_USE_TX_ISR
+//#define UARTB_USE_RX
+//#define UARTB_RXBUFSIZE           TX_SERIAL_RXBUFSIZE
+
+#define UARTB_USE_UART1_REMAPPED // com USB/CLI // PB6,PB7
+#define UARTB_BAUD                TX_SERIAL_BAUDRATE
 #define UARTB_USE_TX
-#define UARTB_TXBUFSIZE           RX_SERIAL_TXBUFSIZE
+#define UARTB_TXBUFSIZE           TX_COM_TXBUFSIZE
 #define UARTB_USE_TX_ISR
 #define UARTB_USE_RX
-#define UARTB_RXBUFSIZE           RX_SERIAL_RXBUFSIZE
+#define UARTB_RXBUFSIZE           TX_SERIAL_RXBUFSIZE
 
-#define UART_USE_UART2 // out pin // PA2
-#define UART_BAUD                 100000 // SBus normal baud rate, is being set later anyhow
-#define UART_USE_TX
-#define UART_TXBUFSIZE            256
-#define UART_USE_TX_ISR
-//#define UART_USE_RX
-//#define UART_RXBUFSIZE            512
+#define UARTE_USE_UART2 // in pin // PA3
+#define UARTE_BAUD                 100000 // SBus normal baud rate, is being set later anyhow
+//#define UARTE_USE_TX
+//#define UARTE_TXBUFSIZE            256
+//#define UARTE_USE_TX_ISR
+#define UARTE_USE_RX
+#define UARTE_RXBUFSIZE            512
 
 #define SWUART_USE_TIM17 // debug
 #define SWUART_TX_IO              IO_PA9
@@ -96,12 +109,12 @@ void sx_reset(void)
 void sx_amp_transmit(void)
 {
     gpio_low(SX_RX_EN);
-    gpio_high(SX_TX_EN);
+    gpio_low(SX_TX_EN);
 }
 
 void sx_amp_receive(void)
 {
-    gpio_low(SX_TX_EN);
+    gpio_high(SX_TX_EN);
     gpio_high(SX_RX_EN);
 }
 
@@ -207,21 +220,21 @@ void sx2_dio_exti_isr_clearflag(void)
 
  */
 
-//-- Out port
+//-- In port
 // UART_UARTx = USART2
 
-void out_init_gpio(void)
+void in_init_gpio(void)
 {
 }
 
-void out_set_normal(void)
+void in_set_normal(void)
 {
     LL_USART_Disable(USART2);
     LL_USART_SetRXPinLevel(USART2, LL_USART_TXPIN_LEVEL_STANDARD);
     LL_USART_Enable(USART2);
 }
 
-void out_set_inverted(void)
+void in_set_inverted(void)
 {
     LL_USART_Disable(USART2);
     LL_USART_SetRXPinLevel(USART2, LL_USART_TXPIN_LEVEL_INVERTED);
@@ -264,8 +277,60 @@ void led_red_on(void) { gpio_high(LED_RED); }
 void led_red_toggle(void) { gpio_toggle(LED_RED); }
 
 
+//-- Serial or Com Switch
+// use COM if BUTTON is pressed during power up
+// BUTTON becomes bind button later on
+
+bool E77_ser_or_com_serial = true; // we use serial as default
+
+void ser_or_com_init(void)
+{
+  gpio_init(BUTTON, IO_MODE_INPUT_PU, IO_SPEED_DEFAULT);
+  uint8_t cnt = 0;
+  for (uint8_t i = 0; i < 16; i++) {
+    if (gpio_read_activelow(BUTTON)) cnt++;
+  }
+  E77_ser_or_com_serial = !(cnt > 8);
+}
+
+bool ser_or_com_serial(void)
+{
+  return E77_ser_or_com_serial;
+}
+
+
+//-- Position Switch
+
+void pos_switch_init(void)
+{
+}
+
+uint8_t pos_switch_read(void)
+{
+    return 0;
+}
+
+//-- 5 Way Switch
+
+void fiveway_init(void)
+{
+}
+
+uint8_t fiveway_read(void)
+{
+    return 0;
+}
+
 //-- Buzzer
-// has none
+// Buzzer is active high // TODO: needs pin and AF check! do not use
+
+#define BUZZER                    IO_PB9XXX
+#define BUZZER_IO_AF              IO_AF_12
+#define BUZZER_TIMx               TIM1
+#define BUZZER_IRQn               TIM1_UP_IRQn
+#define BUZZER_IRQHandler         TIM1_UP_IRQHandler
+#define BUZZER_TIM_CHANNEL        LL_TIM_CHANNEL_CH3N
+//#define BUZZER_TIM_IRQ_PRIORITY   14
 
 
 //-- POWER
@@ -302,12 +367,4 @@ uint32_t portb[] = {
 uint32_t portc[] = {
     //LL_GPIO_PIN_13,
 };
-
-
-
-
-
-
-
-
 
