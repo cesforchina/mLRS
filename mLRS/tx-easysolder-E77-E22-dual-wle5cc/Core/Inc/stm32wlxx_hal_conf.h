@@ -65,6 +65,7 @@
 #define HAL_GPIO_MODULE_ENABLED
 #define HAL_PWR_MODULE_ENABLED
 #define HAL_RCC_MODULE_ENABLED
+#define HAL_I2C_MODULE_ENABLED
 
 /* ########################## Register Callbacks selection ############################## */
 /**

@@ -134,8 +134,8 @@ static const uint8_t ssd1306_initstream[] = {
     0x40,         // Display Start Line
     0x8D, 0x14,   // enable charge pump regulator
     0x20, 0x00,   // Memory Addressing Mode
-    0xA1,         // Segment re-map
-    0xC8,         // COM Output Scan Direction
+    0xA0,         // Segment re-map
+    0xC0,         // COM Output Scan Direction
     0xDA, 0x12,   // COM Pins hardware configuration
     0x81, 0xCF,   // Contrast Control
     0xD9, 0xF1,   // Pre-charge Period

@@ -15,6 +15,7 @@
 #define DEVICE_HAS_IN
 #define DEVICE_HAS_SERIAL_OR_COM // serial or COM is selected by pressing BUTTON during power on
 #define DEVICE_HAS_DEBUG_SWUART
+#define DEVICE_HAS_I2C_DISPLAY
 
 
 //-- Timers, Timing, EEPROM, and such stuff
@@ -109,12 +110,12 @@ void sx_reset(void)
 void sx_amp_transmit(void)
 {
     gpio_low(SX_RX_EN);
-    gpio_low(SX_TX_EN);
+    gpio_high(SX_TX_EN);
 }
 
 void sx_amp_receive(void)
 {
-    gpio_high(SX_TX_EN);
+    gpio_low(SX_TX_EN);
     gpio_high(SX_RX_EN);
 }
 
@@ -312,14 +313,37 @@ uint8_t pos_switch_read(void)
 
 //-- 5 Way Switch
 
+#define FIVEWAY_SWITCH_CENTER     IO_PC13 // POS_3
+#define FIVEWAY_SWITCH_UP         IO_PA15 // A = POS_2
+#define FIVEWAY_SWITCH_DOWN       IO_PB0 // D = POS_5
+#define FIVEWAY_SWITCH_LEFT       IO_PB2 // C = POS_4
+#define FIVEWAY_SWITCH_RIGHT      IO_PB12 // B = POS_1
+
 void fiveway_init(void)
 {
+    gpio_init(FIVEWAY_SWITCH_CENTER, IO_MODE_INPUT_PU, IO_SPEED_DEFAULT);
+    gpio_init(FIVEWAY_SWITCH_UP, IO_MODE_INPUT_PU, IO_SPEED_DEFAULT);
+    gpio_init(FIVEWAY_SWITCH_DOWN, IO_MODE_INPUT_PU, IO_SPEED_DEFAULT);
+    gpio_init(FIVEWAY_SWITCH_LEFT, IO_MODE_INPUT_PU, IO_SPEED_DEFAULT);
+    gpio_init(FIVEWAY_SWITCH_RIGHT, IO_MODE_INPUT_PU, IO_SPEED_DEFAULT);
 }
 
 uint8_t fiveway_read(void)
 {
-    return 0;
+    return ((uint8_t)gpio_read_activelow(FIVEWAY_SWITCH_UP) << KEY_UP) +
+           ((uint8_t)gpio_read_activelow(FIVEWAY_SWITCH_DOWN) << KEY_DOWN) +
+           ((uint8_t)gpio_read_activelow(FIVEWAY_SWITCH_LEFT) << KEY_LEFT) +
+           ((uint8_t)gpio_read_activelow(FIVEWAY_SWITCH_RIGHT) << KEY_RIGHT) +
+           ((uint8_t)gpio_read_activelow(FIVEWAY_SWITCH_CENTER) << KEY_CENTER);
 }
+
+
+//-- Display I2C
+
+#define I2C_USE_I2C2              // PA11, PA12
+#define I2C_CLOCKSPEED_400KHZ     // not all displays seem to work well with I2C_CLOCKSPEED_1000KHZ
+#define I2C_USE_DMAMODE
+
 
 //-- Buzzer
 // Buzzer is active high // TODO: needs pin and AF check! do not use
