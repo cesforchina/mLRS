@@ -167,6 +167,7 @@ class Sx126xDriverCommon : public Sx126xDriverBase
         switch (Setup.FrequencyBand) {
             case SETUP_FREQUENCY_BAND_915_MHZ_FCC: CalibrateImage(SX126X_CAL_IMG_902_MHZ_1, SX126X_CAL_IMG_902_MHZ_2); break;
             case SETUP_FREQUENCY_BAND_868_MHZ: CalibrateImage(SX126X_CAL_IMG_863_MHZ_1, SX126X_CAL_IMG_863_MHZ_2); break;
+            case SETUP_FREQUENCY_BAND_866_MHZ_IN: CalibrateImage(SX126X_CAL_IMG_863_MHZ_1, SX126X_CAL_IMG_863_MHZ_2); break;
             case SETUP_FREQUENCY_BAND_433_MHZ: CalibrateImage(SX126X_CAL_IMG_430_MHZ_1, SX126X_CAL_IMG_430_MHZ_2); break;
             case SETUP_FREQUENCY_BAND_70_CM_HAM: CalibrateImage(SX126X_CAL_IMG_430_MHZ_1, SX126X_CAL_IMG_430_MHZ_2); break;
             default:
@@ -223,6 +224,17 @@ class Sx126xDriverCommon : public Sx126xDriverBase
     {
         ClearIrqStatus(SX126X_IRQ_ALL);
         SetRx(tmo_ms * 64);
+    }
+
+    void GetPacketStatus(int8_t* RssiSync, int8_t* Snr)
+    {
+        int16_t rssi;
+        Sx126xDriverBase::GetPacketStatus(&rssi, Snr);
+
+        if (rssi > -1) rssi = -1; // we do not support values larger than this
+        if (rssi < -127) rssi = -127; // we do not support values lower than this
+
+        *RssiSync = rssi;
     }
 
     void HandleAFC(void) {}

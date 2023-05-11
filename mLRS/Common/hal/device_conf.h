@@ -11,6 +11,7 @@
 // for devices with I2C, un-comment #define HAL_I2C_MODULE_ENABLED in Core/Inc/stm32xxxx_hal_conf.h
 
 // Note: A device may support multiple frequency bands.
+// Note: Device name can be 20 chars max.
 
 
 //-- FrsKy R9 system
@@ -21,6 +22,7 @@
   #define DEVICE_HAS_SX127x
   #define FREQUENCY_BAND_868_MHZ
   #define FREQUENCY_BAND_915_MHZ_FCC
+  //#define FREQUENCY_BAND_866_MHZ_IN
 #endif
 
 #ifdef RX_R9M_868_F103C8
@@ -29,6 +31,7 @@
   #define DEVICE_HAS_SX127x
   #define FREQUENCY_BAND_868_MHZ
   #define FREQUENCY_BAND_915_MHZ_FCC
+  //#define FREQUENCY_BAND_866_MHZ_IN
 #endif
 
 #ifdef RX_R9MM_868_F103RB
@@ -37,6 +40,7 @@
   #define DEVICE_HAS_SX127x
   #define FREQUENCY_BAND_868_MHZ
   #define FREQUENCY_BAND_915_MHZ_FCC
+  //#define FREQUENCY_BAND_866_MHZ_IN
 #endif
 
 
@@ -46,6 +50,7 @@
   #define DEVICE_HAS_SX127x
   #define FREQUENCY_BAND_868_MHZ
   #define FREQUENCY_BAND_915_MHZ_FCC
+  //#define FREQUENCY_BAND_866_MHZ_IN
 #endif
 
 #ifdef TX_R9MX_868_L433CB
@@ -54,6 +59,7 @@
   #define DEVICE_HAS_SX127x
   #define FREQUENCY_BAND_868_MHZ
   #define FREQUENCY_BAND_915_MHZ_FCC
+  //#define FREQUENCY_BAND_866_MHZ_IN
 #endif
 
 
@@ -65,6 +71,7 @@
   #define DEVICE_HAS_SX126x
   #define FREQUENCY_BAND_868_MHZ
   #define FREQUENCY_BAND_915_MHZ_FCC
+  //#define FREQUENCY_BAND_866_MHZ_IN
 #endif
 
 #ifdef RX_WIO_E5_MINI_WLE5JC
@@ -73,6 +80,7 @@
   #define DEVICE_HAS_SX126x
   #define FREQUENCY_BAND_868_MHZ
   #define FREQUENCY_BAND_915_MHZ_FCC
+  //#define FREQUENCY_BAND_866_MHZ_IN
 #endif
 
 
@@ -82,6 +90,32 @@
   #define DEVICE_HAS_SX126x
   #define FREQUENCY_BAND_868_MHZ
   #define FREQUENCY_BAND_915_MHZ_FCC
+  //#define FREQUENCY_BAND_866_MHZ_IN
+  //#define FREQUENCY_BAND_433_MHZ
+  //#define FREQUENCY_BAND_70_CM_HAM
+#endif
+
+
+//-- EByte MBL Evaluation Kits
+
+#ifdef RX_E77_MBLKIT_WLE5CC
+  #define DEVICE_NAME "E77 MBL Kit WLE5CC"
+  #define DEVICE_IS_RECEIVER
+  #define DEVICE_HAS_SX126x
+  #define FREQUENCY_BAND_868_MHZ
+  #define FREQUENCY_BAND_915_MHZ_FCC
+  //#define FREQUENCY_BAND_866_MHZ_IN
+  //#define FREQUENCY_BAND_433_MHZ
+  //#define FREQUENCY_BAND_70_CM_HAM
+#endif
+
+#ifdef TX_E77_MBLKIT_WLE5CC
+  #define DEVICE_NAME "E77 MBL Kit WLE5CC"
+  #define DEVICE_IS_TRANSMITTER
+  #define DEVICE_HAS_SX126x
+  #define FREQUENCY_BAND_868_MHZ
+  #define FREQUENCY_BAND_915_MHZ_FCC
+  //#define FREQUENCY_BAND_866_MHZ_IN
   //#define FREQUENCY_BAND_433_MHZ
   //#define FREQUENCY_BAND_70_CM_HAM
 #endif
@@ -132,7 +166,7 @@
   #define FREQUENCY_BAND_2P4_GHZ
 #endif
 
-#ifdef TX_DIY_SXDUAL_BOARD02_G491RE
+#ifdef TX_DIY_SXDUAL_MODULE02_G491RE
   #define DEVICE_NAME "DIY DualSX G491RE"
   #define DEVICE_IS_TRANSMITTER
   #define DEVICE_HAS_SX128x
@@ -155,6 +189,7 @@
   #define DEVICE_HAS_SX126x
   #define FREQUENCY_BAND_868_MHZ
   #define FREQUENCY_BAND_915_MHZ_FCC
+  //#define FREQUENCY_BAND_866_MHZ_IN
 #endif
 
 #ifdef TX_DIY_E22_G431KB
@@ -163,6 +198,7 @@
   #define DEVICE_HAS_SX126x
   #define FREQUENCY_BAND_868_MHZ
   #define FREQUENCY_BAND_915_MHZ_FCC
+  //#define FREQUENCY_BAND_866_MHZ_IN
 #endif
 
 #ifdef TX_DIY_E22DUAL_MODULE02_G491RE
@@ -171,6 +207,7 @@
   #define DEVICE_HAS_SX126x
   #define FREQUENCY_BAND_868_MHZ
   #define FREQUENCY_BAND_915_MHZ_FCC
+  //#define FREQUENCY_BAND_866_MHZ_IN
 #endif
 
 
@@ -180,6 +217,7 @@
   #define DEVICE_HAS_SX126x
   #define FREQUENCY_BAND_868_MHZ
   #define FREQUENCY_BAND_915_MHZ_FCC
+  //#define FREQUENCY_BAND_866_MHZ_IN
 #endif
 
 #ifdef TX_DIY_WIOE5_E22_WLE5JC
@@ -188,6 +226,7 @@
   #define DEVICE_HAS_SX126x
   #define FREQUENCY_BAND_868_MHZ
   #define FREQUENCY_BAND_915_MHZ_FCC
+  //#define FREQUENCY_BAND_866_MHZ_IN
 #endif
 
 
@@ -199,6 +238,7 @@
   #define DEVICE_HAS_SX126x
   #define FREQUENCY_BAND_868_MHZ
   #define FREQUENCY_BAND_915_MHZ_FCC
+  //#define FREQUENCY_BAND_866_MHZ_IN
   //#define FREQUENCY_BAND_433_MHZ
   //#define FREQUENCY_BAND_70_CM_HAM
 #endif

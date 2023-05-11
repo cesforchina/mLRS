@@ -32,6 +32,8 @@ v0.0.00:
 #include "../Common/hal/glue.h"
 #include "../modules/stm32ll-lib/src/stdstm32.h"
 #include "../modules/stm32ll-lib/src/stdstm32-peripherals.h"
+#include "../Common/libs/stdstm32-mcu.h"
+#include "../Common/libs/stdstm32-adc.h"
 #ifdef STM32WL
 #include "../modules/stm32ll-lib/src/stdstm32-subghz.h"
 #endif
@@ -118,43 +120,8 @@ class In : public InBase
 In in;
 
 
-void init(void)
-{
-    // disable all interrupts, they may be enabled with restart
-    __disable_irq();
-
-    leds_init();
-    button_init();
-    pos_switch_init();
-    esp_init();
-
-    delay_init();
-    micros_init();
-
-    serial.Init();
-    serial2.Init();
-    in.Init();
-
-    com.Init();
-    cli.Init(&com);
-    buzzer.Init();
-    fan.Init();
-    dbg.Init();
-
-    setup_init();
-
-    sx.Init(); // sx needs Config, so call after setup_init()
-    sx2.Init();
-
-    mbridge.Init(Config.UseMbridge, Config.UseCrsf); // these affect peripherals, hence do here
-    crsf.Init(Config.UseCrsf);
-
-    __enable_irq();
-}
-
-
 //-------------------------------------------------------
-// mavlink
+// Mavlink
 //-------------------------------------------------------
 
 #include "mavlink_interface_tx.h"
@@ -182,6 +149,15 @@ tTxSxSerial sx_serial;
 #include "../CommonTx/disp.h"
 
 tTxDisp disp;
+
+
+//-------------------------------------------------------
+// Wifi Bridge
+//-------------------------------------------------------
+
+#include "esp.h"
+
+tTxEspWifiBridge esp;
 
 
 //-------------------------------------------------------
@@ -222,6 +198,79 @@ void WhileTransmit::handle_once(void)
         disp.Draw();
     }
 #endif
+}
+
+
+//-------------------------------------------------------
+// Some helper
+//-------------------------------------------------------
+
+void start_bind(void)
+{
+    if (!bind.IsInBind()) bind.StartBind();
+}
+
+
+void stop_bind(void)
+{
+    if (bind.IsInBind()) bind.StopBind();
+}
+
+
+void enter_system_bootloader(void)
+{
+    disp.DrawBoot();
+    BootLoaderInit();
+}
+
+
+void enter_flash_esp(void)
+{
+    disp.DrawFlashEsp();
+    flashesp_do(&com);
+}
+
+
+//-------------------------------------------------------
+// Init
+//-------------------------------------------------------
+
+void init(void)
+{
+    // disable all interrupts, they may be enabled with restart
+    __disable_irq();
+
+    systembootloader_init();
+    leds_init();
+    button_init();
+    pos_switch_init();
+    esp_init();
+
+    delay_init();
+    micros_init();
+
+    systembootloader_do(); // after delay_init() since it may need delay
+
+    serial.Init();
+    serial2.Init();
+    in.Init();
+
+    com.Init();
+    cli.Init(&com);
+    esp.Init(&com, &serial2);
+    buzzer.Init();
+    fan.Init();
+    dbg.Init();
+
+    setup_init();
+
+    sx.Init(); // sx needs Config, so call after setup_init()
+    sx2.Init();
+
+    mbridge.Init(Config.UseMbridge, Config.UseCrsf); // these affect peripherals, hence do here
+    crsf.Init(Config.UseCrsf);
+
+    __enable_irq();
 }
 
 
@@ -403,20 +452,20 @@ void prepare_transmit_frame(uint8_t antenna, uint8_t ack)
             }
 
             stats.bytes_transmitted.Add(payload_len);
-            stats.fresh_serial_data_transmitted.Inc();
+            stats.serial_data_transmitted.Inc();
         } else {
             sx_serial.flush();
         }
     }
 
-    stats.last_tx_antenna = antenna;
+    stats.last_transmit_antenna = antenna;
 
     tFrameStats frame_stats;
     frame_stats.seq_no = stats.transmit_seq_no;
     frame_stats.ack = ack;
-    frame_stats.antenna = stats.last_rx_antenna;
+    frame_stats.antenna = stats.last_antenna;
     frame_stats.transmit_antenna = antenna;
-    frame_stats.rssi = stats.GetLastRxRssi();
+    frame_stats.rssi = stats.GetLastRssi();
     frame_stats.LQ = txstats.GetLQ();
     frame_stats.LQ_serial_data = txstats.GetLQ_serial_data();
 
@@ -452,7 +501,7 @@ void process_received_frame(bool do_payload, tRxFrame* frame)
     }
 
     stats.bytes_received.Add(frame->status.payload_len);
-    stats.fresh_serial_data_received.Inc();
+    stats.serial_data_received.Inc();
 }
 
 
@@ -483,16 +532,16 @@ tRxFrame* frame;
 
         txstats.doValidFrameReceived(); // should we count valid payload only if rx frame ?
 
-        stats.received_seq_no_last = frame->status.seq_no;
-        stats.received_ack_last = frame->status.ack;
+        stats.received_seq_no = frame->status.seq_no;
+        stats.received_ack = frame->status.ack;
 
     } else { // RX_STATUS_INVALID
-        stats.received_seq_no_last = UINT8_MAX;
-        stats.received_ack_last = 0;
+        stats.received_seq_no = UINT8_MAX;
+        stats.received_ack = 0;
     }
 
     // we set it for all received frames
-    stats.last_rx_antenna = antenna;
+    stats.last_antenna = antenna;
 
     // we count all received frames
     txstats.doFrameReceived();
@@ -501,8 +550,8 @@ tRxFrame* frame;
 
 void handle_receive_none(void) // RX_STATUS_NONE
 {
-    stats.received_seq_no_last = UINT8_MAX;
-    stats.received_ack_last = 0;
+    stats.received_seq_no = UINT8_MAX;
+    stats.received_ack = 0;
 }
 
 
@@ -599,6 +648,7 @@ RESTARTCONTROLLER:
   // start up sx
   if (!sx.isOk()) { FAILALWAYS(GR_OFF_RD_BLINK, "Sx not ok"); } // fail!
   if (!sx2.isOk()) { FAILALWAYS(RD_OFF_GR_BLINK, "Sx2 not ok"); } // fail!
+  irq_status =  irq2_status = 0;
   IF_ANTENNA1(sx.StartUp());
   IF_ANTENNA2(sx2.StartUp());
   bind.Init();
@@ -695,9 +745,9 @@ RESTARTCONTROLLER:
             dbg.puts("),");
             dbg.puts(u8toBCD_s(stats.received_LQ)); dbg.puts(", ");
 
-            dbg.puts(s8toBCD_s(stats.last_rx_rssi1)); dbg.putc(',');
+            dbg.puts(s8toBCD_s(stats.last_rssi1)); dbg.putc(',');
             dbg.puts(s8toBCD_s(stats.received_rssi)); dbg.puts(", ");
-            dbg.puts(s8toBCD_s(stats.last_rx_snr1)); dbg.puts("; ");
+            dbg.puts(s8toBCD_s(stats.last_snr1)); dbg.puts("; ");
 
             dbg.puts(u16toBCD_s(stats.bytes_transmitted.GetBytesPerSec())); dbg.puts(", ");
             dbg.puts(u16toBCD_s(stats.bytes_received.GetBytesPerSec())); dbg.puts("; "); */
@@ -828,7 +878,7 @@ IF_ANTENNA2(
 
                 if (link_rx1_status == link_rx2_status) {
                     // we can choose either antenna, so select the one with the better rssi
-                    antenna = (stats.last_rx_rssi1 > stats.last_rx_rssi2) ? ANTENNA_1 : ANTENNA_2;
+                    antenna = (stats.last_rssi1 > stats.last_rssi2) ? ANTENNA_1 : ANTENNA_2;
                 } else
                 if (link_rx1_status == RX_STATUS_VALID) {
                     antenna = ANTENNA_1;
@@ -837,7 +887,7 @@ IF_ANTENNA2(
                     antenna = ANTENNA_2;
                 } else {
                     // we can choose either antenna, so select the one with the better rssi
-                    antenna = (stats.last_rx_rssi1 > stats.last_rx_rssi2) ? ANTENNA_1 : ANTENNA_2;
+                    antenna = (stats.last_rssi1 > stats.last_rssi2) ? ANTENNA_1 : ANTENNA_2;
                 }
             } else if (USE_ANTENNA2) {
                 antenna = ANTENNA_2;
@@ -862,6 +912,7 @@ IF_ANTENNA2(
                 connect_sync_cnt++;
                 if (connect_sync_cnt >= CONNECT_SYNC_CNT) {
                     // this should not happen, since we started with GET_RX_SETUPDATA, right?
+                    // we could be more gentle and postpone connection by one cnt
                     if (!SetupMetaData.rx_available) FAIL(BLINK_3, "rx_available not true");
                     connect_state = CONNECT_STATE_CONNECTED;
                     connect_occured_once = true;
@@ -982,8 +1033,9 @@ IF_MBRIDGE_OR_CRSF( // to allow crsf mbridge emulation
                 doParamsStore = true;
             }
             break;
-        case MBRIDGE_CMD_BIND_START: if (!bind.IsInBind()) bind.StartBind(); break;
-        case MBRIDGE_CMD_BIND_STOP: if (bind.IsInBind()) bind.StopBind(); break;
+        case MBRIDGE_CMD_BIND_START: start_bind(); break;
+        case MBRIDGE_CMD_BIND_STOP: stop_bind(); break;
+        case MBRIDGE_CMD_SYSTEM_BOOTLOADER: enter_system_bootloader(); break;
         case MBRIDGE_CMD_MODELID_SET: {
 //            uint8_t* payload = mbridge.GetPayloadPtr();
 //dbg.puts("\nmbridge model id"); dbg.puts(u8toBCD_s(*payload));
@@ -1014,7 +1066,7 @@ IF_CRSF(
             if (mbridge.CrsfFrameAvailable(&buf, &len)) {
                 crsf.SendMBridgeFrame(buf, len);
             } else
-            if (Setup.Tx.SerialLinkMode == SERIAL_LINK_MODE_MAVLINK) {
+            if (connected() && Setup.Rx.SerialLinkMode == SERIAL_LINK_MODE_MAVLINK) { // connected() implies SetupMetaData.rx_available
                 crsf.SendTelemetryFrame();
             }
             DECl(do_cnt);
@@ -1024,10 +1076,10 @@ IF_CRSF(
     if (crsf.CommandReceived(&crsfcmd)) {
         switch (crsfcmd) {
         case TXCRSF_CMD_MODELID_SET:
-dbg.puts("\ncrsf model select id "); dbg.puts(u8toBCD_s(crsf.GetCmdDataPtr()[0]));
+//dbg.puts("\ncrsf model select id "); dbg.puts(u8toBCD_s(crsf.GetCmdDataPtr()[0]));
             break;
         case TXCRSF_CMD_MBRIDGE_IN:
-dbg.puts("\ncrsf mbridge ");
+//dbg.puts("\ncrsf mbridge ");
             mbridge.ParseCrsfFrame(crsf.GetPayloadPtr(), crsf.GetPayloadLen(), micros());
             break;
         }
@@ -1053,6 +1105,7 @@ dbg.puts("\ncrsf mbridge ");
     whileTransmit.Do();
 
     //-- Handle display or cli task
+
     uint8_t cli_task = disp.Task();
     if (cli_task == CLI_TASK_NONE) cli_task = cli.Task();
 
@@ -1071,7 +1124,6 @@ dbg.puts("\ncrsf mbridge ");
             doParamsStore = true;
         }
         break;
-    case CLI_TASK_BIND: if (!bind.IsInBind()) bind.StartBind(); break;
     case CLI_TASK_PARAM_RELOAD:
         setup_reload();
         if (connected()) {
@@ -1079,7 +1131,16 @@ dbg.puts("\ncrsf mbridge ");
             mbridge.Lock(); // lock mbridge
         }
         break;
+    case CLI_TASK_BIND: start_bind(); break;
+    case CLI_TASK_BOOT: enter_system_bootloader(); break;
+    case CLI_TASK_FLASH_ESP: enter_flash_esp(); break;
     }
+
+    //-- Handle esp wifi bridge
+
+    esp.Do();
+    uint8_t esp_task = esp.Task();
+    if (esp_task == ESP_TASK_RESTART_CONTROLLER) goto RESTARTCONTROLLER;
 
   }//end of while(1) loop
 

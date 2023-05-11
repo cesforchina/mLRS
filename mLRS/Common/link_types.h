@@ -31,6 +31,7 @@ typedef enum {
     LINK_STATE_RECEIVE_WAIT,
     LINK_STATE_RECEIVE_DONE,
 } LINK_STATE_ENUM;
+const char* linkstate_str[] = { "i", "t", "tw", "r", "rw", "d" }; // for debug purposes
 #endif
 #ifdef DEVICE_IS_RECEIVER
 typedef enum {
@@ -39,15 +40,16 @@ typedef enum {
     LINK_STATE_TRANSMIT,
     LINK_STATE_TRANSMIT_WAIT,
 } LINK_STATE_ENUM;
+const char* linkstate_str[] = { "r", "rw", "t", "tw" }; // for debug purposes
 #endif
 
 typedef enum {
     RX_STATUS_NONE = 0, // no frame received
-    RX_STATUS_INVALID,
+    RX_STATUS_INVALID, // frame received, but crc (and crc1) invalid
 #ifdef DEVICE_IS_RECEIVER
-    RX_STATUS_CRC1_VALID,
+    RX_STATUS_CRC1_VALID, // frame received, crc1 valid, but crc invalid
 #endif
-    RX_STATUS_VALID,
+    RX_STATUS_VALID, // frame received and crc (and crc1) valid
 } RX_STATUS_ENUM;
 
 

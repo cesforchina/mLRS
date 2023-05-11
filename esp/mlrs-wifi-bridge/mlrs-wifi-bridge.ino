@@ -6,7 +6,7 @@
 //*******************************************************
 // Basic but effective & reliable transparent WiFi<->serial bridge
 //*******************************************************
-// 28. Feb. 2023
+// 28. Apr. 2023
 //*********************************************************/
 // inspired by examples from Arduino
 // ArduinoIDE 2.0.3, esp32 by Espressif Systems 2.0.6
@@ -14,23 +14,20 @@
 /*
 for more details on the boards see mlrs-wifi-bridge-boards.h
 
-- ESP32-PICO-KIT
-  board: ESP32-PICO-D4
-- TTGO-MICRO32
-  board: ESP32-PICO-D4
 - Adafruit QT Py S2
   board: Adafruit QT Py ESP32-S2
 - M5Stack M5Stamp C3 Mate
   board: ESP32C3 Dev Module
   ATTENTION: when the 5V pin is used, one MUST not also use the USB port, since they are connected internally!!
-*/
-
-/*
-much info is in 
-C:\Users\...\AppData\Local\Arduino15\packages\esp32\hardware\esp32\2.0.6\cores\esp32\HardwareSerial.h/.cpp
-default buffer sizes are
-_rxBufferSize(256),
-_txBufferSize(0), 
+- M5Stack M5Stamp Pico
+  board: ESP32-PICO-D4
+- ESP32-PICO-KIT
+  board: ESP32-PICO-D4
+- TTGO-MICRO32
+  board: ESP32-PICO-D4
+- M5Stack M5Stamp C3U Mate
+  board: ESP32C3 Dev Module
+  ATTENTION: when the 5V pin is used, one MUST not also use the USB port, since they are connected internally!!
 */
 
 #include <WiFi.h>
@@ -47,6 +44,8 @@ _txBufferSize(0),
 //#define MODULE_M5STAMP_C3_MATE
 //#define MODULE_TTGO_MICRO32
 //#define MODULE_ESP32_PICO_KIT
+//#define MODULE_M5STAMP_C3U_MATE_FOR_FRSKY_R9M
+//#define MODULE_M5STAMP_PICO_FOR_FRSKY_R9M
 
 
 // Wifi Protocol 0 = TCP, 1 = UDP
@@ -62,10 +61,12 @@ int port_tcp = 5760; // connect to this port per TCP // MissionPlanner default i
 int port_udp = 14550; // connect to this port per UDP // MissionPlanner default is 14550
 
 // baudrate
-int baudrate = 57600;
+int baudrate = 115200;
 
 // WiFi channel
-int wifi_channel = 13; // 1 is the default, 13 (2461-2483 MHz) has the least overlap with mLRS 2.4 GHz frequencies
+// 1 is the default, 13 (2461-2483 MHz) has the least overlap with mLRS 2.4 GHz frequencies.
+// Note: Channel 13 is generally not available in the US, where 11 is the maximum.
+int wifi_channel = 13;
 
 // WiFi power
 // comment out for default setting
@@ -103,11 +104,11 @@ WiFiServer server(port_tcp);
 WiFiClient client;
 #endif
 
-int led_tlast_ms;
 bool led_state;
-
+unsigned long led_tlast_ms;
 bool is_connected;
-int is_connected_tlast_ms;
+unsigned long is_connected_tlast_ms;
+unsigned long serial_data_received_tfirst_ms;
 
 
 void serialFlushRx(void)
@@ -129,7 +130,11 @@ void setup()
     size_t rxbufsize = SERIAL.setRxBufferSize(2*1024); // must come before uart started, retuns 0 if it fails
     size_t txbufsize = SERIAL.setTxBufferSize(512); // must come before uart started, retuns 0 if it fails
 #ifdef SERIAL_RXD // if SERIAL_TXD is not defined the compiler will complain, so all good
+  #ifdef SERIAL_INVERT
+    SERIAL.begin(baudrate, SERIAL_8N1, SERIAL_RXD, SERIAL_TXD, SERIAL_INVERT);
+  #else
     SERIAL.begin(baudrate, SERIAL_8N1, SERIAL_RXD, SERIAL_TXD);
+  #endif
 #else    
     SERIAL.begin(baudrate);
 #endif    
@@ -141,7 +146,12 @@ void setup()
     // AP mode
     //WiFi.mode(WIFI_AP); // seems not to be needed, done by WiFi.softAP()?
     WiFi.softAPConfig(ip, ip, netmask);
-    WiFi.softAP(ssid.c_str(), (password.length()) ? password.c_str() : NULL, wifi_channel); // channel = 1 is default
+#if WIFI_PROTOCOL == 1
+    String ssid_full = ssid + " UDP";
+#else    
+    String ssid_full = ssid + " TCP";
+#endif    
+    WiFi.softAP(ssid_full.c_str(), (password.length()) ? password.c_str() : NULL, wifi_channel); // channel = 1 is default
     DBG_PRINT("ap ip address: ");
     DBG_PRINTLN(WiFi.softAPIP()); // comes out as 192.168.4.1
     DBG_PRINT("channel: ");
@@ -163,20 +173,24 @@ void setup()
     is_connected = false;
     is_connected_tlast_ms = 0;
 
+    serial_data_received_tfirst_ms = 0;
+
     serialFlushRx();
 }
 
 
 void loop() 
 {
-    int tnow_ms = millis();
+    unsigned long tnow_ms = millis();
+
     if (is_connected && (tnow_ms - is_connected_tlast_ms > 2000)) { // nothing from GCS for 2 secs
         is_connected = false;
     }
+
     if (tnow_ms - led_tlast_ms > (is_connected ? 500 : 200)) {
         led_tlast_ms = tnow_ms;
         led_state = !led_state;
-        if (led_state) led_on(); else led_off();
+        if (led_state) led_on(is_connected); else led_off();
     }
 
     //-- here comes the core code, handle wifi connection and do the bridge
@@ -190,15 +204,22 @@ void loop()
         int len = udp.read(buf, sizeof(buf));
         SERIAL.write(buf, len);
         is_connected = true;
-        is_connected_tlast_ms = millis();;
+        is_connected_tlast_ms = millis();
     }
 
-    while (SERIAL.available()) {
+    tnow_ms = millis(); // may not be relevant, but just update it
+    int avail = SERIAL.available();
+    if (avail <= 0) {
+        serial_data_received_tfirst_ms = tnow_ms;      
+    } else 
+    if ((tnow_ms - serial_data_received_tfirst_ms) > 10 || avail > 128) { // 10 ms at 57600 bps corresponds to 57 bytes, no chance for 128 bytes
+        serial_data_received_tfirst_ms = tnow_ms;
+
         int len = SERIAL.read(buf, sizeof(buf));
         udp.beginPacket(ip_udp, port_udp);
         udp.write(buf, len);
-        udp.endPacket();    
-    }   
+        udp.endPacket();
+    }
 
 #else // TCP
 
@@ -226,15 +247,20 @@ void loop()
         int len = client.read(buf, sizeof(buf));
         SERIAL.write(buf, len);
         is_connected = true;
-        is_connected_tlast_ms = millis();;
+        is_connected_tlast_ms = millis();
     }
 
-    while (SERIAL.available()) {
-        //uint8_t c = (uint8_t)SERIAL.read();
-        //client.write(c);
+    tnow_ms = millis(); // update it
+    int avail = SERIAL.available();
+    if (avail <= 0) {
+        serial_data_received_tfirst_ms = tnow_ms;      
+    } else 
+    if ((tnow_ms - serial_data_received_tfirst_ms) > 10 || avail > 128) { // 10 ms at 57600 bps corresponds to 57 bytes, no chance for 128 bytes
+        serial_data_received_tfirst_ms = tnow_ms;
+
         int len = SERIAL.read(buf, sizeof(buf));
         client.write(buf, len);
-    }    
+    }
 
 #endif    
 }

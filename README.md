@@ -33,7 +33,7 @@ The project is work in progress, and there is still plenty of room for improveme
 
 However, the essential basic features, i.e., the RC link and the serial data link, are quite stable and robust. The mLRS system also provides already a high level of usability such as a variety of options for input/output, parameter setting via the transmitter, optimization for ArduPilot/PX4 systems, wireless connection to ground control stations (MissionPlanner, QGC), support of the Yappu telemetry app, and it also integrates well with the MAVLink for OpenTx project.
 
-It supports the SX1280, SX1276, and SX1262 Semtech chips, and thus the 2.4 GHz, 915/868 MHz and 433 MHz/70 cm frequency bands.
+It supports the SX1280, SX1276, SX1262 and LLCC68 Semtech chips, and thus the 2.4 GHz, 915/868 MHz and 433 MHz/70 cm frequency bands.
 
 The RC channels layout is as follows:
 - 8 channels with 11 bit resolution (CH1 - CH8), 4 of them with a higher reliability margin (CH1 - CH4)
@@ -48,13 +48,13 @@ It provides these operation modes:
   downlink serial rate: 4100 Bytes/sec<br>
   receiver sensitivity: -105 dBm
 - 31 Hz Mode<br>
-  frequency bands: 2.4 GHz, 915/868 MHz, 433 MHz/70 cm (SX1280 and SX1262 chips)<br>
+  frequency bands: 2.4 GHz, 915/868 MHz, 433 MHz/70 cm (SX1280 and SX1262/LLCC68 chips)<br>
   RC channels: 8 x 11 bit + 4 x 8 bit + 4 x three-step<br>
   uplink serial rate: 2000 Bytes/sec<br>
   downlink serial rate: 2562 Bytes/sec<br>
   receiver sensitivity: -108 dBm
 - 19 Hz Mode<br>
-  frequency bands: 2.4 GHz, 915/868 MHz, 433 MHz/70 cm (SX1280, SX1276, SX1262 chips)<br>
+  frequency bands: 2.4 GHz, 915/868 MHz, 433 MHz/70 cm (SX1280, SX1276, SX1262/LLCC68 chips)<br>
   RC channels: 8 x 11 bit + 4 x 8 bit + 4 x three-step<br>
   uplink serial rate: 1207 Bytes/sec<br>
   downlink serial rate: 1547 Bytes/sec<br>
@@ -66,12 +66,12 @@ Further features:
 - the receiver parameters can be set from within the transmitter; no need to mess with the receiver in any ways.
 - the transmitter and receiver parameters can be set via a LUA script, a CLI, or an OLED display.
 - bind mode for binding "unknown" receivers to the transmitter.
-- the Tx and Rx modules can be configured through the parameters for a wide range of applications and use cases. For a pictoral representation of some typical examples see [mLRS Setup examples](https://www.rcgroups.com/forums/showpost.php?p=48821735&postcount=332), and for more details [Documentation](#further-documentations).
+- the Tx and Rx modules can be configured through the parameters for a wide range of applications and use cases. For a pictoral representation of some typical examples see [mLRS Setup examples](https://www.rcgroups.com/forums/showpost.php?p=48821735&postcount=332), and for more details [Documentation](https://github.com/olliw42/mLRS-docu).
 - support of CRSF and ArduPilot Passthrough protocol; enables using the Yaapu Telemetry app on standard radios (out of the box, no need for extra dongles anymore!).
 - support for buzzer, OLED display & five-way button, serial2. 
 - support of ESP32 modules for wireless connection to a ground control station.
 - optimizations for ArduPilot and PX4 systems.
-- support of plenty platforms: STM32F103, STM32G4, STM32L4, STM32WLE5, Wio-E5, E28, E22, E77, SX1280, SX1262, SX1276.
+- support of plenty platforms: STM32F103, STM32G4, STM32L4, STM32WLE5, Wio-E5, E28, E22, E77, SX1280, SX1262, SX1276, LLCC68.
 
 ## Community ##
 
@@ -89,7 +89,7 @@ The range which one may expect can be estimated from the standard math; the [Imm
 | 868/915 MHz | - | 26 km | 42 km
 | 433 MHz/70 cm | - | 55 km | 87 km
 
-Only few range tests were reported so far; they however appear to be consistent with the estimated ranges (e.g., [6 km were reported](https://www.rcgroups.com/forums/showpost.php?p=50537585&postcount=1356) for 2.4 GHz, 10 mW, 19 Hz, with 100 LQ, no failsafe, which translates to > 19 km at 100 mW). Also note that mLRS supports full diversity, which when enabled has been found to significantly improve performance at lower link budget, i.e., allow to operate at larger ranges.
+For the 2.4 GHz band, the available range test reports consistently exceed the above estimated ranges (e.g., [8.3 km were reported](https://www.rcgroups.com/forums/showpost.php?p=50964339&postcount=1721) for 2.4 GHz, 50 Hz, 9 dBm (8 mW), which translates to 29 km at 100 mW). For the other bands less information is available. Note that mLRS supports full diversity, which when enabled has been found to significantly improve performance at lower link budget, i.e., allow to operate at larger ranges.
 
 ## Hardware ##
 
@@ -98,11 +98,12 @@ Hardware is a problem currently. One might be tempted to think that all the rece
 The code currently supports:
 - Frsky R9M transmitter and R9MX and R9MM receiver modules
 - SeeedStudio Wio-E5 Mini and Grove Wio-E5 boards
+- EByte E77 MBL board
 - several DIY boards you can find in https://github.com/olliw42/mLRS-hardware
 
 In the 915/868 MHz range, the Frsky R9M & R9MX system provides a simple and readily available entry into mLRS. In this sense it is the best option available currently. Its big disadvantage is however that the receiver's transmission power is quite low and telemetry range thus relatively short. This can be mitigated by using the R9M module as receiver, which is supported by mLRS. 
 
-The SeeedStudio Wio-E5 boards are also readily available, and hence excellent options too to enter mLRS. The "easy-to-solder" Rx module, which uses an Ebyte E77 module, is a simple DIY option for building a mLRS receiver. These boards are based on the STM32WL5E chip and thus provide all the advantages of the SX1262, like the 31 Hz mode. Their maximum power is 22 dBm, and they can be used in the 915/868 MHz and 433 MHz/70 cm frequency ranges.
+The SeeedStudio Wio-E5 boards and EByte E77 MBL board are also readily available, and hence excellent options too to enter mLRS. The "easy-to-solder" Rx module, which uses an Ebyte E77 module, is a simple DIY option for building a mLRS receiver. These boards are based on the STM32WL5E chip and thus provide all the advantages of the SX1262, like the 31 Hz mode. Their maximum power is 22 dBm, and they can be used in the 915/868 MHz and 433 MHz/70 cm frequency ranges.
 
 In the 2.4 GHz range, the DIY options are currently the (only) way to go.
 

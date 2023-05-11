@@ -12,7 +12,7 @@
 
 
 #include "setup_types.h"
-#include "hal\hal.h"
+#include "hal/hal.h"
 
 
 tSetupMetaData SetupMetaData;
@@ -28,24 +28,28 @@ void setup_configure_metadata(void)
 {
     SetupMetaData = {0};
 
-    //-- FrequencyBand: "2.4,915 FCC,868,433,70"
+    //-- FrequencyBand: "2.4,915 FCC,868,433,70,866 IN"
 #ifdef FREQUENCY_BAND_2P4_GHZ
-    SetupMetaData.FrequencyBand_allowed_mask = 0b00001; // only 2.4 GHz, not editable
+    SetupMetaData.FrequencyBand_allowed_mask = 0b000001; // only 2.4 GHz, not editable
 #elif defined FREQUENCY_BAND_915_MHZ_FCC && defined FREQUENCY_BAND_868_MHZ && \
       defined FREQUENCY_BAND_433_MHZ && defined FREQUENCY_BAND_70_CM_HAM
-    SetupMetaData.FrequencyBand_allowed_mask = 0b11110; // 915 FCC, 868, 433, 70
+    SetupMetaData.FrequencyBand_allowed_mask = 0b011110; // 915 FCC, 868, 433, 70
+#elif defined FREQUENCY_BAND_915_MHZ_FCC && defined FREQUENCY_BAND_868_MHZ && defined FREQUENCY_BAND_866_MHZ_IN
+    SetupMetaData.FrequencyBand_allowed_mask = 0b100110; // 915 FCC, 868, 866 IN
 #elif defined FREQUENCY_BAND_915_MHZ_FCC && defined FREQUENCY_BAND_868_MHZ
-    SetupMetaData.FrequencyBand_allowed_mask = 0b00110; // 915 FCC, 868
+    SetupMetaData.FrequencyBand_allowed_mask = 0b000110; // 915 FCC, 868
 #elif defined FREQUENCY_BAND_433_MHZ && defined FREQUENCY_BAND_70_CM_HAM
-    SetupMetaData.FrequencyBand_allowed_mask = 0b11000; // 433, 70
+    SetupMetaData.FrequencyBand_allowed_mask = 0b011000; // 433, 70
 #elif defined FREQUENCY_BAND_915_MHZ_FCC
-    SetupMetaData.FrequencyBand_allowed_mask = 0b00010; // only 915 MHz FCC, not editable
+    SetupMetaData.FrequencyBand_allowed_mask = 0b000010; // only 915 MHz FCC, not editable
 #elif defined FREQUENCY_BAND_868_MHZ
-    SetupMetaData.FrequencyBand_allowed_mask = 0b00100; // only 868 MHz, not editable
+    SetupMetaData.FrequencyBand_allowed_mask = 0b000100; // only 868 MHz, not editable
 #elif defined FREQUENCY_BAND_433_MHZ
-    SetupMetaData.FrequencyBand_allowed_mask = 0b01000; // only 433 MHz, not editable
+    SetupMetaData.FrequencyBand_allowed_mask = 0b001000; // only 433 MHz, not editable
 #elif defined FREQUENCY_BAND_70_CM_HAM
-    SetupMetaData.FrequencyBand_allowed_mask = 0b10000; // only 70 cm HAM, not editable
+    SetupMetaData.FrequencyBand_allowed_mask = 0b010000; // only 70 cm HAM, not editable
+#elif defined FREQUENCY_BAND_866_MHZ_IN
+    SetupMetaData.FrequencyBand_allowed_mask = 0b100000; // only 866 MHz IN, not editable
 #endif
 
     //-- Mode: "50 Hz,31 Hz,19 Hz"
@@ -61,7 +65,7 @@ void setup_configure_metadata(void)
 
     power_optstr_from_rfpower_list(SetupMetaData.Tx_Power_optstr, rfpower_list, RFPOWER_LIST_NUM, 44);
 
-    // Diversity: "on,antenna1,antenna2"
+    // Diversity: "enabled,antenna1,antenna2"
 #ifdef DEVICE_HAS_DIVERSITY
     SetupMetaData.Tx_Diversity_allowed_mask = UINT16_MAX; // all
 #else
@@ -166,7 +170,6 @@ void setup_default(void)
     Setup.Tx.ChannelOrder = SETUP_TX_CHANNEL_ORDER;
     Setup.Tx.InMode = SETUP_TX_IN_MODE;
     Setup.Tx.SerialBaudrate = SETUP_TX_SERIAL_BAUDRATE;
-    Setup.Tx.SerialLinkMode = SETUP_TX_SERIAL_LINK_MODE;
     Setup.Tx.SendRadioStatus = SETUP_TX_SEND_RADIO_STATUS;
     Setup.Tx.Buzzer = SETUP_TX_BUZZER;
     Setup.Tx.CliLineEnd = SETUP_TX_CLI_LINE_END;
@@ -185,8 +188,6 @@ void setup_default(void)
 
     for (uint8_t ch = 0; ch < 12; ch++) { Setup.Rx.FailsafeOutChannelValues_Ch1_Ch12[ch] = 0; }
     for (uint8_t ch = 0; ch < 4; ch++) { Setup.Rx.FailsafeOutChannelValues_Ch13_Ch16[ch] = 1; }
-
-    Setup.Rx.__RadioStatusMethod = 0xFF; // deprecated
 }
 
 
@@ -212,6 +213,8 @@ void setup_sanitize(void)
     uint8_t frequency_band_default = SETUP_FREQUENCY_BAND_433_MHZ;
 #elif defined FREQUENCY_BAND_70_CM_HAM
     uint8_t frequency_band_default = SETUP_FREQUENCY_BAND_70_CM_HAM;
+#elif defined FREQUENCY_BAND_866_MHZ_IN
+    uint8_t frequency_band_default = SETUP_FREQUENCY_BAND_866_MHZ_IN;
 #else
     #error Unknown Frequencyband !
 #endif
@@ -238,8 +241,7 @@ void setup_sanitize(void)
     if (SETUP_TST_NOTALLOWED(Tx_SerialDestination_allowed_mask,Tx.SerialDestination)) Setup.Tx.SerialDestination = SERIAL_DESTINATION_SERIAL;
 
     if (Setup.Tx.ChannelOrder >= CHANNEL_ORDER_NUM) Setup.Tx.ChannelOrder = CHANNEL_ORDER_AETR;
-    if (Setup.Tx.SerialBaudrate >= SERIAL_BAUDRATE_NUM) Setup.Tx.SerialBaudrate = SERIAL_BAUDRATE_57600;
-    if (Setup.Tx.SerialLinkMode >= SERIAL_LINK_MODE_NUM) Setup.Tx.SerialLinkMode = SERIAL_LINK_MODE_TRANSPARENT;
+    if (Setup.Tx.SerialBaudrate >= SERIAL_BAUDRATE_NUM) Setup.Tx.SerialBaudrate = SERIAL_BAUDRATE_115200;
     if (Setup.Tx.SendRadioStatus >= TX_SEND_RADIO_STATUS_NUM) Setup.Tx.SendRadioStatus = TX_SEND_RADIO_STATUS_OFF;
 
     if (Setup.Tx.Buzzer >= BUZZER_NUM) Setup.Tx.Buzzer = BUZZER_OFF;
@@ -281,9 +283,17 @@ void setup_sanitize(void)
     if (Setup.Rx.SerialBaudrate >= SERIAL_BAUDRATE_NUM) Setup.Rx.SerialBaudrate = SERIAL_BAUDRATE_57600;
     if (Setup.Rx.SerialLinkMode >= SERIAL_LINK_MODE_NUM) Setup.Rx.SerialLinkMode = SERIAL_LINK_MODE_TRANSPARENT;
     if (Setup.Rx.SendRadioStatus >= RX_SEND_RADIO_STATUS_NUM) Setup.Rx.SendRadioStatus = RX_SEND_RADIO_STATUS_OFF;
-    // deprecated if (Setup.Rx.RadioStatusMethod >= RADIO_STATUS_METHOD_NUM) Setup.Rx.RadioStatusMethod = RADIO_STATUS_METHOD_W_TXBUF;
-    //Setup.Rx.RadioStatusMethod = RADIO_STATUS_METHOD_W_TXBUF; // for the moment we fix it to this setting
     if (Setup.Rx.SendRcChannels >= SEND_RC_CHANNELS_NUM) Setup.Rx.SendRcChannels = SEND_RC_CHANNELS_OFF;
+
+    //-- Spares and deprecated options:
+    // should be 0xFF'ed
+
+    Setup.Tx.__SerialLinkMode = 0xFF;
+    Setup.Rx.__RadioStatusMethod = 0xFF;
+
+    for (uint8_t n = 0; n < sizeof(Setup.spare)/sizeof(Setup.spare[0]); n++) Setup.spare[n] = 0xFF;
+    for (uint8_t n = 0; n < sizeof(Setup.Tx.spare)/sizeof(Setup.Tx.spare[0]); n++) Setup.Tx.spare[n] = 0xFF;
+    for (uint8_t n = 0; n < sizeof(Setup.Rx.spare)/sizeof(Setup.Rx.spare[0]); n++) Setup.Rx.spare[n] = 0xFF;
 }
 
 
@@ -400,12 +410,7 @@ void setup_configure(void)
         }
         break;
     case SETUP_FREQUENCY_BAND_915_MHZ_FCC:
-        switch (Config.Mode) {
-        case MODE_31HZ: Config.FhssNum = FHSS_NUM_BAND_915_MHZ_FCC; break;
-        case MODE_19HZ: Config.FhssNum = FHSS_NUM_BAND_915_MHZ_FCC_19HZ_MODE; break;
-        default:
-            while (1) {} // must not happen, should have been resolved in setup_sanitize()
-        }
+        Config.FhssNum = FHSS_NUM_BAND_915_MHZ_FCC;
         break;
     case SETUP_FREQUENCY_BAND_868_MHZ:
         Config.FhssNum = FHSS_NUM_BAND_868_MHZ;
@@ -420,6 +425,9 @@ void setup_configure(void)
         default:
             while (1) {} // must not happen, should have been resolved in setup_sanitize()
         }
+        break;
+    case SETUP_FREQUENCY_BAND_866_MHZ_IN:
+        Config.FhssNum = FHSS_NUM_BAND_866_MHZ_IN;
         break;
     default:
         while (1) {} // must not happen, should have been resolved in setup_sanitize()
@@ -446,7 +454,11 @@ void setup_configure(void)
     case SERIAL_BAUDRATE_115200: Config.SerialBaudrate = 115200; break;
     case SERIAL_BAUDRATE_230400: Config.SerialBaudrate = 230400; break;
     default:
+#ifdef DEVICE_IS_TRANSMITTER
+        Config.SerialBaudrate = 115200;
+#else
         Config.SerialBaudrate = 57600;
+#endif
     }
 
     //-- Mbridge, Crsf
@@ -537,7 +549,7 @@ bool doEEPROMwrite;
     setup_configure_metadata();
 
 #ifdef SETUP_FORCE_COMMON_CONF
-setup_default();
+    setup_default();
 #endif
 
     setup_sanitize();
