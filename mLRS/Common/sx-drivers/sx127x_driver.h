@@ -177,18 +177,18 @@ class Sx127xDriverCommon : public Sx127xDriverBase
         ReadBuffer(rxStartBufferPointer, data, len);
     }
 
-    void SendFrame(uint8_t* data, uint8_t len, uint16_t tmo_ms = 100) // SX1276 doesn't have a Tx timeout
+    void SendFrame(uint8_t* data, uint8_t len, uint16_t tmo_ms) // SX1276 doesn't have a Tx timeout
     {
         WriteBuffer(0, data, len);
         ClearIrqStatus(SX1276_IRQ_ALL);
         SetTx();
     }
 
-    void SetToRx(uint16_t tmo_ms = 10)
+    void SetToRx(uint16_t tmo_ms)
     {
         WriteRegister(SX1276_REG_FifoAddrPtr, 0);
         ClearIrqStatus(SX1276_IRQ_ALL);
-        if (tmo_ms == 0) {
+        if (tmo_ms == 0) { // 0 = no timeout
             SetRxContinuous();
         } else {
             SetRxTimeout(((uint32_t)tmo_ms * 1000) / symbol_time_us);
@@ -295,7 +295,6 @@ class Sx127xDriverCommon : public Sx127xDriverBase
 // Driver for SX1
 //-------------------------------------------------------
 
-
 class Sx127xDriver : public Sx127xDriverCommon
 {
   public:
@@ -341,17 +340,13 @@ class Sx127xDriver : public Sx127xDriverCommon
 
         spi_init();
         sx_init_gpio();
+        sx_dio_exti_isr_clearflag();
         sx_dio_init_exti_isroff();
 
         // no idea how long the SX1276 takes to boot up, so give it some good time
         delay_ms(300);
         _reset(); // this is super crucial ! was so for SX1280, is it also for the SX1276 ??
-    }
 
-    //-- high level API functions
-
-    void StartUp(void)
-    {
         // this is not nice, figure out where to place
 #ifdef DEVICE_HAS_I2C_DAC
         dac.Init();
@@ -359,6 +354,19 @@ class Sx127xDriver : public Sx127xDriverCommon
 
         SetStandby(); // should be in STDBY after reset
         delay_us(1000); // is this needed ????
+    }
+
+    //-- high level API functions
+
+    void StartUp(void)
+    {
+//XX        // this is not nice, figure out where to place
+//XX#ifdef DEVICE_HAS_I2C_DAC
+//XX        dac.Init();
+//XX#endif
+
+//XX        SetStandby(); // should be in STDBY after reset
+//XX        delay_us(1000); // is this needed ????
 
         Configure();
         delay_us(125); // may not be needed
@@ -368,14 +376,14 @@ class Sx127xDriver : public Sx127xDriverCommon
 
     //-- this are the API functions used in the loop
 
-    void SendFrame(uint8_t* data, uint8_t len, uint16_t tmo_ms = 100)
+    void SendFrame(uint8_t* data, uint8_t len, uint16_t tmo_ms = 0)
     {
         sx_amp_transmit();
         Sx127xDriverCommon::SendFrame(data, len, tmo_ms);
         delay_us(125); // may not be needed if busy available
     }
 
-    void SetToRx(uint16_t tmo_ms = 10)
+    void SetToRx(uint16_t tmo_ms = 0)
     {
         sx_amp_receive();
         Sx127xDriverCommon::SetToRx(tmo_ms);

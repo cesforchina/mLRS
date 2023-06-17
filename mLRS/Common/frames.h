@@ -43,7 +43,7 @@ uint16_t crc;
     frame->sync_word = Config.FrameSyncWord;
     frame->status.seq_no = frame_stats->seq_no;
     frame->status.ack = frame_stats->ack;
-    frame->status.frame_type = type; //FRAME_TYPE_TX;
+    frame->status.frame_type = type; // FRAME_TYPE_TX, FRAME_TYPE_TX_RX_CMD
     frame->status.antenna = frame_stats->antenna;
     frame->status.transmit_antenna = frame_stats->transmit_antenna;
     frame->status.rssi_u7 = rssi_u7_from_i8(frame_stats->rssi);
@@ -75,7 +75,7 @@ uint16_t crc;
 
     // pack the payload
     for (uint8_t i = 0; i < payload_len; i++) {
-      frame->payload[i] = payload[i];
+        frame->payload[i] = payload[i];
     }
 
     // finalize, crc
@@ -168,7 +168,7 @@ uint16_t crc;
     frame->sync_word = Config.FrameSyncWord;
     frame->status.seq_no = frame_stats->seq_no;
     frame->status.ack = frame_stats->ack;
-    frame->status.frame_type = type; //FRAME_TYPE_RX;
+    frame->status.frame_type = type; // FRAME_TYPE_RX, FRAME_TYPE_TX_RX_CMD
     frame->status.antenna = frame_stats->antenna;
     frame->status.transmit_antenna = frame_stats->transmit_antenna;
     frame->status.rssi_u7 = rssi_u7_from_i8(frame_stats->rssi);
@@ -177,7 +177,7 @@ uint16_t crc;
     frame->status.payload_len = payload_len;
 
     for (uint8_t i = 0; i < payload_len; i++) {
-      frame->payload[i] = payload[i];
+        frame->payload[i] = payload[i];
     }
 
     fmav_crc_init(&crc);
@@ -312,7 +312,7 @@ tRxCmdFrameRxSetupData* rx_setupdata = (tRxCmdFrameRxSetupData*)frame->payload;
 // we take the values from Tx' Setup.Rx structure
 void pack_txcmdframe_setrxparams(tTxFrame* frame, tFrameStats* frame_stats, tRcData* rc)
 {
-tTxCmdFrameRxParams rx_params = {0};
+tTxCmdFrameRxParams rx_params = {};
 
     rx_params.cmd = FRAME_CMD_SET_RX_PARAMS;
 
@@ -342,7 +342,7 @@ uint8_t payload[1];
 // Rx: send FRAME_CMD_RX_SETUPDATA to Tx
 void pack_rxcmdframe_rxsetupdata(tRxFrame* frame, tFrameStats* frame_stats)
 {
-tRxCmdFrameRxSetupData rx_setupdata = {0};
+tRxCmdFrameRxSetupData rx_setupdata = {};
 
     rx_setupdata.cmd = FRAME_CMD_RX_SETUPDATA;
 

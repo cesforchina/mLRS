@@ -439,6 +439,7 @@ void tMBridge::Unlock(void)
 // handler
 
 void mbridge_start_ParamRequestList(void);
+void mbridge_start_ParamRequestByIndex(uint8_t idx);
 
 
 uint8_t tMBridge::HandleRequestCmd(uint8_t* payload)
@@ -469,11 +470,10 @@ tMBridgeRequestCmd* request = (tMBridgeRequestCmd*)payload;
         break;
 
     case MBRIDGE_CMD_PARAM_ITEM:{
-        //??
-        //uint8_t idx = request->index;
+        uint8_t idx = request->param_item.index;
         //if (request->name[0] != 0) { // name is specified, so search for index of parameter
         //}
-        // TODO mbridge.cmd_task_fifo.Put(MBRIDGE_CMD_PARAM_ITEM);
+        mbridge_start_ParamRequestByIndex(idx);
         }break;
     }
 
@@ -493,7 +493,7 @@ uint8_t tMBridge::HandleCmd(uint8_t cmd)
 
 void mbridge_send_LinkStats(void)
 {
-tMBridgeLinkStats lstats = {0};
+tMBridgeLinkStats lstats = {};
 
     lstats.LQ = txstats.GetLQ(); // it's the same as GetLQ_serial_data() // = LQ_valid_received; // number of valid packets received on transmitter side
     lstats.rssi1_instantaneous = stats.last_rssi1;
@@ -549,7 +549,7 @@ tMBridgeLinkStats lstats = {0};
 
 void mbridge_send_Info(void)
 {
-tMBridgeInfo info = {0};
+tMBridgeInfo info = {};
 
     info.receiver_sensitivity = sx.ReceiverSensitivity_dbm(); // is equal for Tx and Rx
     info.tx_actual_power_dbm = sx.RfPower_dbm();
@@ -581,7 +581,7 @@ tMBridgeInfo info = {0};
 
 void mbridge_send_DeviceItemTx(void)
 {
-tMBridgeDeviceItem item = {0};
+tMBridgeDeviceItem item = {};
 
     item.firmware_version_u16 = version_to_u16(VERSION);
     item.setup_layout = SETUPLAYOUT;
@@ -592,7 +592,7 @@ tMBridgeDeviceItem item = {0};
 
 void mbridge_send_DeviceItemRx(void)
 {
-tMBridgeDeviceItem item = {0};
+tMBridgeDeviceItem item = {};
 
     if (SetupMetaData.rx_available) {
         item.firmware_version_u16 = version_to_u16(SetupMetaData.rx_firmware_version);
@@ -607,17 +607,31 @@ tMBridgeDeviceItem item = {0};
 }
 
 
-uint8_t param_idx;
-uint8_t param_itemtype_to_send;
+uint8_t param_idx; // next param index to send
+uint8_t param_itemtype_to_send; // count through sending PARAM_ITEM, PARAM_ITEM2, PARAM_ITEM3
+bool param_by_index; // to indicate sending requested by list or by index
+
 
 // we have to send (much) more than SETUP_PARAMETER_NUM PARAM_ITEM messages
 // since all parameters need 2 and some even 3 of them
 // currently it are about 80 for the 36 parameters => 80 x 20ms = 1600 ms
 
+
+void mbridge_start_ParamRequestByIndex(uint8_t idx)
+{
+    param_idx = idx;
+    param_itemtype_to_send = 0;
+    param_by_index = true;
+
+    mbridge.cmd_fifo.Put(MBRIDGE_CMD_PARAM_ITEM); // trigger sending out
+}
+
+
 void mbridge_start_ParamRequestList(void)
 {
     param_idx = 0;
     param_itemtype_to_send = 0;
+    param_by_index = false;
 
     mbridge.cmd_fifo.Put(MBRIDGE_CMD_PARAM_ITEM); // trigger sending out first
 }
@@ -627,7 +641,7 @@ void mbridge_send_ParamItem(void)
 {
     if (param_idx >= SETUP_PARAMETER_NUM) {
         // we send a mbridge message, but don't put a MBRIDGE_CMD_PARAM_ITEM into the fifo, this stops it
-        tMBridgeParamItem item = {0};
+        tMBridgeParamItem item = {};
         item.index = UINT8_MAX; // indicates end of list
         mbridge.SendCommand(MBRIDGE_CMD_PARAM_ITEM, (uint8_t*)&item);
         return;
@@ -636,7 +650,7 @@ void mbridge_send_ParamItem(void)
     bool item3_needed = false; // if a LIST parameter has a long option string, we send a 3rd ParamItem
 
     if (param_itemtype_to_send == 0) {
-        tMBridgeParamItem item = {0};
+        tMBridgeParamItem item = {};
         item.index = param_idx;
         switch (SetupParameter[param_idx].type) {
         case SETUP_PARAM_TYPE_UINT8:
@@ -672,7 +686,7 @@ void mbridge_send_ParamItem(void)
 
     } else
     if (param_itemtype_to_send == 1) {
-        tMBridgeParamItem2 item2 = {0};
+        tMBridgeParamItem2 item2 = {};
         item2.index = param_idx;
         switch (SetupParameter[param_idx].type) {
         case SETUP_PARAM_TYPE_UINT8:
@@ -718,10 +732,12 @@ void mbridge_send_ParamItem(void)
             // next param item
             param_itemtype_to_send = 0; // done with this parameter
             param_idx++;
+
+            if (param_by_index) return; // if requested by index we stop
         }
     } else
     if (param_itemtype_to_send >= 2) {
-        tMBridgeParamItem3 item3 = {0};
+        tMBridgeParamItem3 item3 = {};
         item3.index = param_idx;
         strbufstrcpy(item3.options2_23, SetupParameter[param_idx].optstr + 21, 23);
 
@@ -730,6 +746,8 @@ void mbridge_send_ParamItem(void)
         // next param item
         param_itemtype_to_send = 0; // done with this parameter
         param_idx++;
+
+        if (param_by_index) return; // if requested by index we stop
     }
 
     mbridge.cmd_fifo.Put(MBRIDGE_CMD_PARAM_ITEM); // trigger sending out next

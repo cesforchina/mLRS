@@ -14,7 +14,7 @@
 #include "../Common/mavlink/fmav_extension.h"
 #include "../Common/protocols/ardupilot_protocol.h"
 
-static inline bool connected(void);
+static inline bool connected_and_rx_setup_available(void);
 extern tSerialBase* serialport;
 
 
@@ -63,9 +63,9 @@ void MavlinkBase::Init(void)
 {
     fmav_init();
 
-    result_link_in = {0};
-    status_link_in = {0};
-    status_serial_out = {0};
+    result_link_in = {};
+    status_link_in = {};
+    status_serial_out = {};
 
     radio_status_tlast_ms = millis32() + 1000;
 
@@ -82,14 +82,14 @@ void MavlinkBase::Do(void)
     uint32_t tnow_ms = millis32();
     bool inject_radio_status = false;
 
-    if (!connected()) { // !connected() implies !SetupMetaData.rx_available
+    if (!connected_and_rx_setup_available()) {
         //Init();
-        radio_status_tlast_ms = tnow_ms + 1000;
+        radio_status_tlast_ms = tnow_ms;
     }
 
     if (Setup.Rx.SerialLinkMode != SERIAL_LINK_MODE_MAVLINK) return;
 
-    if (Setup.Tx.SendRadioStatus && connected()) {
+    if (Setup.Tx.SendRadioStatus) {
         if ((tnow_ms - radio_status_tlast_ms) >= 1000) {
             radio_status_tlast_ms = tnow_ms;
             inject_radio_status = true;

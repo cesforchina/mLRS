@@ -31,7 +31,7 @@ v0.0.00:
 #include "../Common/hal/glue.h"
 #include "../modules/stm32ll-lib/src/stdstm32.h"
 #include "../modules/stm32ll-lib/src/stdstm32-peripherals.h"
-#include "../Common/libs/stdstm32-mcu.h"
+#include "../Common/thirdparty/stdstm32-mcu.h"
 #ifdef STM32WL
 #include "../modules/stm32ll-lib/src/stdstm32-subghz.h"
 #endif
@@ -323,15 +323,12 @@ void pack_rxcmdframe(tRxFrame* frame, tFrameStats* frame_stats)
 
 //-- normal Tx, Rx frames handling
 
-uint8_t payload[FRAME_RX_PAYLOAD_LEN];
-uint8_t payload_len;
-
-
 void prepare_transmit_frame(uint8_t antenna, uint8_t ack)
 {
+uint8_t payload[FRAME_RX_PAYLOAD_LEN];
+uint8_t payload_len = 0;
+
     if (transmit_frame_type == TRANSMIT_FRAME_TYPE_NORMAL) {
-        memset(payload, 0, FRAME_RX_PAYLOAD_LEN);
-        payload_len = 0;
 
         // read data from serial
         if (connected()) {
@@ -414,17 +411,17 @@ void handle_receive(uint8_t antenna)
 uint8_t rx_status;
 tTxFrame* frame;
 
-    if (bind.IsInBind()) {
-        bind.handle_receive(antenna, (antenna == ANTENNA_1) ? link_rx1_status : link_rx2_status);
-        return;
-    }
-
     if (antenna == ANTENNA_1) {
         rx_status = link_rx1_status;
         frame = &txFrame;
     } else {
         rx_status = link_rx2_status;
         frame = &txFrame2;
+    }
+
+    if (bind.IsInBind()) {
+        bind.handle_receive(antenna, rx_status);
+        return;
     }
 
     if (rx_status != RX_STATUS_INVALID) { // RX_STATUS_CRC1_VALID, RX_STATUS_VALID
@@ -864,15 +861,17 @@ dbg.puts(s8toBCD_s(stats.last_rssi2));*/
             sx2.SetToIdle();
         }
 
-        if (!connected()) stats.Clear();
-        rxstats.Next();
-
         DECc(tick_1hz_commensurate, Config.frame_rate_hz);
         if (!tick_1hz_commensurate) {
             rxstats.Update1Hz();
         }
+        rxstats.Next();
+        if (!connected()) rxstats.Clear();
 
-        if (connect_state == CONNECT_STATE_LISTEN) link_task_reset();
+        if (connect_state == CONNECT_STATE_LISTEN) {
+            link_task_reset();
+            link_task_set(LINK_TASK_RX_SEND_RX_SETUPDATA);
+        }
 
         if (Setup.Rx.Buzzer == BUZZER_LOST_PACKETS && connect_occured_once && !bind.IsInBind()) {
             if (!valid_frame_received) buzzer.BeepLP();

@@ -213,17 +213,17 @@ class Sx126xDriverCommon : public Sx126xDriverBase
         ReadBuffer(rxStartBufferPointer, data, len);
     }
 
-    void SendFrame(uint8_t* data, uint8_t len, uint16_t tmo_ms = 100)
+    void SendFrame(uint8_t* data, uint8_t len, uint16_t tmo_ms)
     {
         WriteBuffer(0, data, len);
         ClearIrqStatus(SX126X_IRQ_ALL);
-        SetTx(tmo_ms * 64); // TimeOut period inn ms. sx1262 have static 15p625 period base, so for 1 ms needs 64 tmo value
+        SetTx(tmo_ms * 64); // 0 = no timeout. TimeOut period inn ms. sx1262 have static 15p625 period base, so for 1 ms needs 64 tmo value
     }
 
-    void SetToRx(uint16_t tmo_ms = 10)
+    void SetToRx(uint16_t tmo_ms)
     {
         ClearIrqStatus(SX126X_IRQ_ALL);
-        SetRx(tmo_ms * 64);
+        SetRx(tmo_ms * 64); // 0 = no timeout
     }
 
     void GetPacketStatus(int8_t* RssiSync, int8_t* Snr)
@@ -367,21 +367,22 @@ class Sx126xDriver : public Sx126xDriverCommon
 
         spi_init();
         sx_init_gpio();
+        sx_dio_exti_isr_clearflag();
         sx_dio_init_exti_isroff();
 
         // no idea how long the SX126x takes to boot up, so give it some good time
         // we could probably speed up by using WaitOnBusy()
         delay_ms(300);
         _reset(); // this is super crucial ! was so for SX1280, is it also for the SX1262 ??
+
+        SetStandby(SX126X_STDBY_CONFIG_STDBY_RC); // should be in STDBY_RC after reset
+        delay_us(1000); // is this needed ????
     }
 
     //-- high level API functions
 
     void StartUp(void)
     {
-        SetStandby(SX126X_STDBY_CONFIG_STDBY_RC); // should be in STDBY_RC after reset
-        delay_us(1000); // is this needed ????
-
 #ifdef SX_USE_DCDC // here ??? ELRS does it as last !!!
         SetRegulatorMode(SX126X_REGULATOR_MODE_DCDC);
 #endif
@@ -394,14 +395,14 @@ class Sx126xDriver : public Sx126xDriverCommon
 
     //-- this are the API functions used in the loop
 
-    void SendFrame(uint8_t* data, uint8_t len, uint16_t tmo_ms = 100)
+    void SendFrame(uint8_t* data, uint8_t len, uint16_t tmo_ms = 0)
     {
         sx_amp_transmit();
         Sx126xDriverCommon::SendFrame(data, len, tmo_ms);
         delay_us(125); // may not be needed if busy available
     }
 
-    void SetToRx(uint16_t tmo_ms = 10)
+    void SetToRx(uint16_t tmo_ms = 0)
     {
         sx_amp_receive();
         Sx126xDriverCommon::SetToRx(tmo_ms);
@@ -418,6 +419,10 @@ class Sx126xDriver : public Sx126xDriverCommon
 #ifndef SX2_BUSY
     #error SX2 must have a BUSY pin !!
 #endif
+#ifndef SX2_RESET
+    #error SX2 must have a RESET pin !!
+#endif
+
 
 class Sx126xDriver2 : public Sx126xDriverCommon
 {
@@ -449,15 +454,11 @@ class Sx126xDriver2 : public Sx126xDriverCommon
 
     void _reset(void)
     {
-#ifdef SX2_RESET
         gpio_low(SX2_RESET);
         delay_ms(5); // datasheet says > 100 us
         gpio_high(SX2_RESET);
         delay_ms(50);
         WaitOnBusy();
-#else
-        sx2_reset();
-#endif
     }
 
     void Init(void)
@@ -470,20 +471,21 @@ class Sx126xDriver2 : public Sx126xDriverCommon
         spib_init();
         sx2_init_gpio();
         sx2_dio_init_exti_isroff();
+        sx2_dio_exti_isr_clearflag();
 
         // no idea how long the SX126x takes to boot up, so give it some good time
         // we could probably speed up by using WaitOnBusy()
         delay_ms(300);
         _reset(); // this is super crucial ! was so for SX1280, is it also for the SX1262 ??
+
+        SetStandby(SX126X_STDBY_CONFIG_STDBY_RC); // should be in STDBY_RC after reset
+        delay_us(1000); // is this needed ????
     }
 
     //-- high level API functions
 
     void StartUp(void)
     {
-        SetStandby(SX126X_STDBY_CONFIG_STDBY_RC); // should be in STDBY_RC after reset
-        delay_us(1000); // is this needed ????
-
 #ifdef SX2_USE_DCDC // here ??? ELRS does it as last !!!
         SetRegulatorMode(SX126X_REGULATOR_MODE_DCDC);
 #endif
@@ -496,14 +498,14 @@ class Sx126xDriver2 : public Sx126xDriverCommon
 
     //-- this are the API functions used in the loop
 
-    void SendFrame(uint8_t* data, uint8_t len, uint16_t tmo_ms = 100)
+    void SendFrame(uint8_t* data, uint8_t len, uint16_t tmo_ms = 0)
     {
         sx2_amp_transmit();
         Sx126xDriverCommon::SendFrame(data, len, tmo_ms);
         delay_us(125); // may not be needed if busy available
     }
 
-    void SetToRx(uint16_t tmo_ms = 10)
+    void SetToRx(uint16_t tmo_ms = 0)
     {
         sx2_amp_receive();
         Sx126xDriverCommon::SetToRx(tmo_ms);

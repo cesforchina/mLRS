@@ -191,17 +191,17 @@ class Sx128xDriverCommon : public Sx128xDriverBase
         ReadBuffer(rxStartBufferPointer, data, len);
     }
 
-    void SendFrame(uint8_t* data, uint8_t len, uint16_t tmo_ms = 100)
+    void SendFrame(uint8_t* data, uint8_t len, uint16_t tmo_ms)
     {
         WriteBuffer(0, data, len);
         ClearIrqStatus(SX1280_IRQ_ALL);
-        SetTx(SX1280_PERIODBASE_62p5_US, tmo_ms*16); // if a Tx timeout occurs we have a serious problem
+        SetTx(SX1280_PERIODBASE_62p5_US, tmo_ms*16); // 0 = no timeout, if a Tx timeout occurs we have a serious problem
     }
 
-    void SetToRx(uint16_t tmo_ms = 10)
+    void SetToRx(uint16_t tmo_ms)
     {
         ClearIrqStatus(SX1280_IRQ_ALL);
-        SetRx(SX1280_PERIODBASE_62p5_US, tmo_ms*16);
+        SetRx(SX1280_PERIODBASE_62p5_US, tmo_ms*16); // 0 = no timeout
     }
 
     void SetToIdle(void)
@@ -341,21 +341,22 @@ class Sx128xDriver : public Sx128xDriverCommon
 
         spi_init();
         sx_init_gpio();
+        sx_dio_exti_isr_clearflag();
         sx_dio_init_exti_isroff();
 
         // no idea how long the SX1280 takes to boot up, so give it some good time
         // we could probably speed up by using WaitOnBusy()
         delay_ms(300);
         _reset(); // this is super crucial !
+
+        SetStandby(SX1280_STDBY_CONFIG_STDBY_RC); // should be in STDBY_RC after reset
+        delay_us(1000); // this is important, 500 us ok
     }
 
     //-- high level API functions
 
     void StartUp(void)
     {
-        SetStandby(SX1280_STDBY_CONFIG_STDBY_RC); // should be in STDBY_RC after reset
-        delay_us(1000); // this is important, 500 us ok
-
 #ifdef SX_USE_DCDC // here ??? ELRS does it as last !!!
         SetRegulatorMode(SX1280_REGULATOR_MODE_DCDC);
 #endif
@@ -368,14 +369,14 @@ class Sx128xDriver : public Sx128xDriverCommon
 
     //-- this are the API functions used in the loop
 
-    void SendFrame(uint8_t* data, uint8_t len, uint16_t tmo_ms = 100)
+    void SendFrame(uint8_t* data, uint8_t len, uint16_t tmo_ms = 0)
     {
         sx_amp_transmit();
         Sx128xDriverCommon::SendFrame(data, len, tmo_ms);
         delay_us(125); // may not be needed if busy available
     }
 
-    void SetToRx(uint16_t tmo_ms = 10)
+    void SetToRx(uint16_t tmo_ms = 0)
     {
         sx_amp_receive();
         Sx128xDriverCommon::SetToRx(tmo_ms);
@@ -392,6 +393,10 @@ class Sx128xDriver : public Sx128xDriverCommon
 #ifndef SX2_BUSY
     #error SX2 must have a BUSY pin !!
 #endif
+#ifndef SX2_RESET
+    #error SX2 must have a RESET pin !!
+#endif
+
 
 class Sx128xDriver2 : public Sx128xDriverCommon
 {
@@ -436,20 +441,24 @@ class Sx128xDriver2 : public Sx128xDriverCommon
 
         spib_init();
         sx2_init_gpio();
+        sx2_dio_exti_isr_clearflag();
         sx2_dio_init_exti_isroff();
 
         // no idea how long the SX1280 takes to boot up, so give it some good time
         // we could probably speed up by using WaitOnBusy()
         delay_ms(300);
         _reset(); // this is super crucial !
+
+        SetStandby(SX1280_STDBY_CONFIG_STDBY_RC); // should be in STDBY_RC after reset
+        delay_us(1000); // this is important, 500 us ok
     }
 
     //-- high level API functions
 
     void StartUp(void)
     {
-        SetStandby(SX1280_STDBY_CONFIG_STDBY_RC); // should be in STDBY_RC after reset
-        delay_us(1000); // this is important, 500 us ok
+//XX        SetStandby(SX1280_STDBY_CONFIG_STDBY_RC); // should be in STDBY_RC after reset
+//XX        delay_us(1000); // this is important, 500 us ok
 
 #ifdef SX2_USE_DCDC // here ??? ELRS does it as last !!!
         SetRegulatorMode(SX1280_REGULATOR_MODE_DCDC);
@@ -463,14 +472,14 @@ class Sx128xDriver2 : public Sx128xDriverCommon
 
     //-- this are the API functions used in the loop
 
-    void SendFrame(uint8_t* data, uint8_t len, uint16_t tmo_ms = 100)
+    void SendFrame(uint8_t* data, uint8_t len, uint16_t tmo_ms = 0)
     {
         sx2_amp_transmit();
         Sx128xDriverCommon::SendFrame(data, len, tmo_ms);
         delay_us(125); // may not be needed if busy available
     }
 
-    void SetToRx(uint16_t tmo_ms = 10)
+    void SetToRx(uint16_t tmo_ms = 0)
     {
         sx2_amp_receive();
         Sx128xDriverCommon::SetToRx(tmo_ms);
