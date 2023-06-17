@@ -769,8 +769,8 @@ end
 ----------------------------------------------------------------------
     
 local top_idx = 0 -- index of first displayed option
-local page_N1 = 9 -- number of options displayed in left colum
-local page_N = 18 -- number of options displayed on page
+local page_N1 = 19 -- number of options displayed in left colum
+local page_N = 19 -- number of options displayed on page
     
 local function drawPageEdit(page_str)
     local x, y;
@@ -802,9 +802,9 @@ local function drawPageEdit(page_str)
             
             lcd.drawText(10+xofs, y, name, TEXT_COLOR)
             if p.typ < MBRIDGE_PARAM_TYPE_LIST then
-                lcd.drawText(140+xofs, y, p.value.." "..p.unit, cur_attr_p(idx, pidx))  
+                lcd.drawText(150+xofs, y, p.value.." "..p.unit, cur_attr_p(idx, pidx))  
             elseif p.typ == MBRIDGE_PARAM_TYPE_LIST then
-                lcd.drawText(140+xofs, y, p.options[p.value+1], cur_attr_p(idx, pidx))  
+                lcd.drawText(150+xofs, y, p.options[p.value+1], cur_attr_p(idx, pidx))  
             end
         end
         
@@ -929,22 +929,22 @@ local function drawPageMain()
         lcd.drawText(35, y+20, DEVICE_ITEM_TX.version_str, TEXT_COLOR)  
     end
     
-    lcd.drawText(240, y, "Rx:", TEXT_COLOR)
+    lcd.drawText(170, y, "Rx:", TEXT_COLOR)
     if not DEVICE_PARAM_LIST_complete then
         -- don't do anything
     elseif not connected then
-        lcd.drawText(270, y, "not connected", TEXT_COLOR)  
+        lcd.drawText(200, y, "not connected", TEXT_COLOR)  
     elseif DEVICE_ITEM_RX == nil then
-        lcd.drawText(270, y, "---", TEXT_COLOR)  
+        lcd.drawText(200, y, "---", TEXT_COLOR)  
     else
-        lcd.drawText(270, y, DEVICE_ITEM_RX.name, TEXT_COLOR)  
-        lcd.drawText(270, y+20, DEVICE_ITEM_RX.version_str, TEXT_COLOR)  
+        lcd.drawText(200, y, DEVICE_ITEM_RX.name, TEXT_COLOR)  
+        lcd.drawText(200, y+20, DEVICE_ITEM_RX.version_str, TEXT_COLOR)  
     end
  
     y = 90
     lcd.drawText(10, y, "Bind Phrase", TEXT_COLOR)
     if DEVICE_PARAM_LIST_complete then --DEVICE_PARAM_LIST ~= nil and DEVICE_PARAM_LIST[0] ~= nil then
-        local x = 140
+        local x = 150
         for i = 1,6 do
             local c = string.sub(DEVICE_PARAM_LIST[0].value, i, i)
             local attr = cur_attr_x(0, i-1)
@@ -958,7 +958,7 @@ local function drawPageMain()
     if DEVICE_PARAM_LIST_complete then --DEVICE_PARAM_LIST ~= nil and DEVICE_PARAM_LIST[1] ~= nil then
         local p = DEVICE_PARAM_LIST[1]
         if p.options[p.value+1] ~= nil then
-            lcd.drawText(140, y+21, p.options[p.value+1], cur_attr_p(1,1))
+            lcd.drawText(150, y+21, p.options[p.value+1], cur_attr_p(1,1))
         end  
     end
     
@@ -968,9 +968,9 @@ local function drawPageMain()
         if p.options[p.value+1] ~= nil then
             --lcd.drawText(240+80, y, p.options[p.value+1], cur_attr(2))
             if p.value <= #freq_band_list then 
-                lcd.drawText(140, y + 2*21, freq_band_list[p.value], cur_attr_p(2,2)) 
+                lcd.drawText(150, y + 2*21, freq_band_list[p.value], cur_attr_p(2,2)) 
             else
-                lcd.drawText(140, y + 2*21, p.options[p.value+1], cur_attr_p(2,2)) 
+                lcd.drawText(150, y + 2*21, p.options[p.value+1], cur_attr_p(2,2)) 
             end
         end  
     end
@@ -978,14 +978,14 @@ local function drawPageMain()
     y = 166
     lcd.drawText(10, y, "Edit Tx", cur_attr(3))  
     if not connected then 
-        lcd.drawText(10 + 80, y, "Edit Rx", TEXT_DISABLE_COLOR)
+        lcd.drawText(10 + 58, y, "Edit Rx", TEXT_DISABLE_COLOR)
     else  
-        lcd.drawText(10 + 80, y, "Edit Rx", cur_attr(4))
+        lcd.drawText(10 + 58, y, "Edit Rx", cur_attr(4))
     end  
-    lcd.drawText(10 + 160, y, "Save", cur_attr(5)) 
-    lcd.drawText(10 + 225, y, "Reload", cur_attr(6))
-    lcd.drawText(10 + 305, y, "Bind", cur_attr(7))
-    lcd.drawText(10 + 365, y, "Tools", cur_attr(8))
+    lcd.drawText(10 + 115, y, "Save", cur_attr(5)) 
+    lcd.drawText(10 + 160, y, "Reload", cur_attr(6))
+    lcd.drawText(10 + 220, y, "Bind", cur_attr(7))
+    lcd.drawText(10 + 260, y, "Tools", cur_attr(8))
      
     -- show overview of some selected parameters
     y = 205
@@ -994,48 +994,49 @@ local function drawPageMain()
     
     --if not DEVICE_PARAM_LIST_complete then
     if DEVICE_DOWNLOAD_is_running then
-        lcd.drawText(130, y+20, "parameters loading ...", TEXT_COLOR+BLINK+INVERS)  
+        lcd.drawText(50, y+20, "parameters loading ...", TEXT_COLOR+BLINK+INVERS)  
         return
     end
     
     lcd.drawText(10, y, "Tx Power", TEXT_COLOR)  
     lcd.drawText(10, y+20, "Tx Diversity", TEXT_COLOR) 
     if DEVICE_INFO ~= nil then
-        lcd.drawText(140, y, tostring(DEVICE_INFO.tx_power_dbm).." dBm", TEXT_COLOR)  
+        lcd.drawText(150, y, tostring(DEVICE_INFO.tx_power_dbm).." dBm", TEXT_COLOR)  
         if DEVICE_INFO.tx_diversity <= #diversity_list then
-            lcd.drawText(140, y+20, diversity_list[DEVICE_INFO.tx_diversity], TEXT_COLOR)  
+            lcd.drawText(150, y+20, diversity_list[DEVICE_INFO.tx_diversity], TEXT_COLOR)  
         else
-            lcd.drawText(140, y+20, "?", TEXT_COLOR)  
+            lcd.drawText(150, y+20, "?", TEXT_COLOR)  
         end
     else
-        lcd.drawText(140, y, "---", TEXT_COLOR)    
-        lcd.drawText(140, y+20, "---", TEXT_COLOR)  
+        lcd.drawText(150, y, "---", TEXT_COLOR)    
+        lcd.drawText(150, y+20, "---", TEXT_COLOR)  
     end    
     
+    y = y + 2*20
     local rx_attr = TEXT_COLOR
     if not connected then 
         rx_attr = TEXT_DISABLE_COLOR 
     end
-    lcd.drawText(10+240, y, "Rx Power", rx_attr)
-    lcd.drawText(10+240, y+20, "Rx Diversity", rx_attr)  
+    lcd.drawText(10, y, "Rx Power", rx_attr)
+    lcd.drawText(10, y+20, "Rx Diversity", rx_attr)  
     if DEVICE_INFO ~= nil and connected then
-        lcd.drawText(140+240, y, tostring(DEVICE_INFO.rx_power_dbm).." dBm", rx_attr)  
+        lcd.drawText(150, y, tostring(DEVICE_INFO.rx_power_dbm).." dBm", rx_attr)  
         if DEVICE_INFO.rx_diversity <= #diversity_list then
-            lcd.drawText(140+240, y+20, diversity_list[DEVICE_INFO.rx_diversity], rx_attr)  
+            lcd.drawText(150, y+20, diversity_list[DEVICE_INFO.rx_diversity], rx_attr)  
         else  
-            lcd.drawText(140+240, y+20, "?", rx_attr)  
+            lcd.drawText(150, y+20, "?", rx_attr)  
         end  
     else  
-        lcd.drawText(140+240, y, "---", rx_attr)  
-        lcd.drawText(140+240, y+20, "---", rx_attr)  
+        lcd.drawText(150, y, "---", rx_attr)  
+        lcd.drawText(150, y+20, "---", rx_attr)  
     end    
     
     y = y + 2*20
     lcd.drawText(10, y, "Sensitivity", TEXT_COLOR)  
     if DEVICE_INFO ~= nil then
-        lcd.drawText(140, y, tostring(DEVICE_INFO.receiver_sensitivity).." dBm", TEXT_COLOR)  
+        lcd.drawText(150, y, tostring(DEVICE_INFO.receiver_sensitivity).." dBm", TEXT_COLOR)  
     else    
-        lcd.drawText(140, y, "---", TEXT_COLOR)  
+        lcd.drawText(150, y, "---", TEXT_COLOR)  
     end    
 end    
 
@@ -1193,9 +1194,10 @@ local function scriptRun(event)
     if event == nil then
         error("Cannot be run as a model script!")
         return 2
-    end  
+    end
+
     if mbridge == nil or not mbridge.enabled() then
-        if model.getModule(1).Type ~= 5 then
+        if model.getModule(0).Type ~= 5 and model.getModule(1).Type ~= 5 then
             error("mLRS not accessible: mBridge or CRSF not enabled!")
             return 2
         end
