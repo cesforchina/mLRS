@@ -273,13 +273,12 @@ The default selection of frequency bands can be overruled by feature defines.
 #endif
 
 #ifdef TX_DIY_E77_E22_WLE5CC
-  #define DEVICE_NAME "DIY E77 E22"
+  #define DEVICE_NAME "DIY E77 E22 TX"
   #define DEVICE_IS_TRANSMITTER
   #define DEVICE_HAS_SX126x
   #define FREQUENCY_BAND_868_MHZ
   #define FREQUENCY_BAND_915_MHZ_FCC
 #endif
-
 
 //-------------------------------------------------------
 // MLRS Feature Defines

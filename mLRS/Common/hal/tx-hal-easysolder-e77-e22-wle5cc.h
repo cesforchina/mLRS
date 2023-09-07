@@ -17,12 +17,10 @@
 // TX DIY "easy-to-solder" E77 E22 dual, STM32WLE5CC
 //-------------------------------------------------------
 
-//#define DEVICE_HAS_DIVERSITY
-#define DEVICE_HAS_JRPIN5
-//#define DEVICE_HAS_IN
 #define DEVICE_HAS_IN_ON_JRPIN5_TX
-#define DEVICE_HAS_SERIAL_OR_COM
+#define DEVICE_HAS_SERIAL_OR_COM // serial or COM is selected by pressing BUTTON during power on
 #define DEVICE_HAS_DEBUG_SWUART
+#define DEVICE_HAS_I2C_DISPLAY
 
 
 #ifdef MLRS_DEV_FEATURE_JRPIN5_SDIODE
@@ -59,7 +57,7 @@
 // UARTF = --
 // SWUART= debug port
 
-#define UARTB_USE_UART1_REMAPPED // serial // PB6,PB7
+#define UARTB_USE_UART2 // serial // PA2,PA3
 #define UARTB_BAUD                TX_SERIAL_BAUDRATE
 #define UARTB_USE_TX
 #define UARTB_TXBUFSIZE           TX_SERIAL_TXBUFSIZE
@@ -169,6 +167,7 @@ void sx_dio_exti_isr_clearflag(void)
     // there is no EXTI_LINE_44 interrupt flag
 }
 
+/*
 
 //-- SX12xx II & SPIB
 
@@ -244,6 +243,7 @@ void sx2_dio_exti_isr_clearflag(void)
     LL_EXTI_ClearFlag_0_31(SX2_DIO_EXTI_LINE_x);
 }
 
+*/
 
 //-- In port
 // this is nasty, UARTE defines not yet known, but cumbersome to add, so we include the lib
@@ -276,7 +276,7 @@ void in_set_inverted(void)
 
 //-- Button
 
-#define BUTTON                    IO_PA1
+#define BUTTON                    IO_PB3
 
 void button_init(void)
 {
@@ -292,7 +292,7 @@ bool button_pressed(void)
 //-- LEDs
 
 #define LED_GREEN                 IO_PB4
-#define LED_RED                   IO_PB3
+#define LED_RED                   IO_PB5
 
 void leds_init(void)
 {
@@ -308,6 +308,87 @@ void led_red_off(void) { gpio_low(LED_RED); }
 void led_red_on(void) { gpio_high(LED_RED); }
 void led_red_toggle(void) { gpio_toggle(LED_RED); }
 
+
+//-- Position Switch
+
+void pos_switch_init(void)
+{
+}
+uint8_t pos_switch_read(void)
+{
+    return 0;
+}
+
+
+//-- 5 Way Switch
+
+#define FIVEWAY_SWITCH_CENTER     IO_PC13 // POS_3
+#define FIVEWAY_SWITCH_UP         IO_PA15 // A = POS_2
+#define FIVEWAY_SWITCH_DOWN       IO_PB0 // D = POS_5
+#define FIVEWAY_SWITCH_LEFT       IO_PB2 // C = POS_4
+#define FIVEWAY_SWITCH_RIGHT      IO_PB12 // B = POS_1
+
+void fiveway_init(void)
+{
+    gpio_init(FIVEWAY_SWITCH_CENTER, IO_MODE_INPUT_PU, IO_SPEED_DEFAULT);
+    gpio_init(FIVEWAY_SWITCH_UP, IO_MODE_INPUT_PU, IO_SPEED_DEFAULT);
+    gpio_init(FIVEWAY_SWITCH_DOWN, IO_MODE_INPUT_PU, IO_SPEED_DEFAULT);
+    gpio_init(FIVEWAY_SWITCH_LEFT, IO_MODE_INPUT_PU, IO_SPEED_DEFAULT);
+    gpio_init(FIVEWAY_SWITCH_RIGHT, IO_MODE_INPUT_PU, IO_SPEED_DEFAULT);
+}
+
+uint8_t fiveway_read(void)
+{
+    return ((uint8_t)gpio_read_activelow(FIVEWAY_SWITCH_UP) << KEY_UP) +
+           ((uint8_t)gpio_read_activelow(FIVEWAY_SWITCH_DOWN) << KEY_DOWN) +
+           ((uint8_t)gpio_read_activelow(FIVEWAY_SWITCH_LEFT) << KEY_LEFT) +
+           ((uint8_t)gpio_read_activelow(FIVEWAY_SWITCH_RIGHT) << KEY_RIGHT) +
+           ((uint8_t)gpio_read_activelow(FIVEWAY_SWITCH_CENTER) << KEY_CENTER);
+}
+
+/*
+
+//-- 5 Way Switch
+// PC2: resistor chain Vcc - 4.7k - down - 1k - left - 2.2k - right - 4.7k - up
+// PC13: center
+
+#define FIVEWAY_SWITCH_CENTER     IO_PC13
+#define FIVEWAY_ADCx              ADC2 // could also be ADC1
+#define FIVEWAY_ADC_IO            IO_PC2 // ADC12_IN8
+#define FIVEWAY_ADC_CHANNELx      LL_ADC_CHANNEL_8
+
+extern "C" { void delay_us(uint32_t us); }
+
+void fiveway_init(void)
+{
+    gpio_init(FIVEWAY_SWITCH_CENTER, IO_MODE_INPUT_PU, IO_SPEED_DEFAULT);
+    LL_RCC_SetADCClockSource(LL_RCC_ADC12_CLKSOURCE_SYSCLK);
+    rcc_init_afio();
+    rcc_init_adc(FIVEWAY_ADCx);
+    adc_init_one_channel(FIVEWAY_ADCx);
+    adc_config_channel(FIVEWAY_ADCx, LL_ADC_REG_RANK_1, FIVEWAY_ADC_CHANNELx, FIVEWAY_ADC_IO);
+    adc_enable(FIVEWAY_ADCx);
+    delay_us(100);
+    adc_start_conversion(FIVEWAY_ADCx);
+}
+
+uint16_t fiveway_adc_read(void)
+{
+    return LL_ADC_REG_ReadConversionData12(FIVEWAY_ADCx);
+}
+
+uint8_t fiveway_read(void)
+{
+    uint8_t center_pressed = gpio_read_activelow(FIVEWAY_SWITCH_CENTER);
+    uint16_t adc = LL_ADC_REG_ReadConversionData12(FIVEWAY_ADCx);
+    if (adc < (0+200)) return (1 << KEY_DOWN); // 0
+    if (adc > (655-200) && adc < (655+200)) return (1 << KEY_LEFT); // 655
+    if (adc > (1595-200) && adc < (1595+200)) return (1 << KEY_RIGHT); // 1595
+    if (adc > (2505-200) && adc < (2505+200)) return (1 << KEY_UP); // 2505
+    return (center_pressed << KEY_CENTER);
+}
+
+*/
 
 //-- Serial or Com Switch
 // use com if BUTTON is pressed during power up, else use serial
@@ -333,6 +414,17 @@ bool ser_or_com_serial(void)
 
 //-- Buzzer
 // has none
+
+
+//-- Display I2C
+
+//#define I2C_USE_I2C2              // PA11, PA12
+//#define I2C_CLOCKSPEED_400KHZ     // not all displays seem to work well with I2C_CLOCKSPEED_1000KHZ
+//#define I2C_USE_DMAMODE
+
+#define I2C_USE_I2C1              // PA9, PA10
+#define I2C_CLOCKSPEED_400KHZ     // not all displays seem to work well with I2C_CLOCKSPEED_1000KHZ
+#define I2C_USE_DMAMODE
 
 
 //-- POWER

@@ -14,7 +14,7 @@
 // RX DIY "easy-to-solder" E77 E22 dual, STM32WLE5CC
 //-------------------------------------------------------
 
-//#define DEVICE_HAS_DIVERSITY
+#define DEVICE_HAS_DIVERSITY
 #define DEVICE_HAS_OUT
 #define DEVICE_HAS_DEBUG_SWUART
 
@@ -139,6 +139,7 @@ void sx_dio_exti_isr_clearflag(void)
 }
 
 
+
 //-- SX12xx II & SPIB
 
 #define SPIB_USE_SPI1             // PA5, PA11, PA12
@@ -161,6 +162,8 @@ void sx_dio_exti_isr_clearflag(void)
 #define SX2_DIO_EXTI_IRQn             EXTI15_10_IRQn
 #define SX2_DIO_EXTI_IRQHandler       EXTI15_10_IRQHandler
 //#define SX2_DIO_EXTI_IRQ_PRIORITY   11
+
+#define SX2_USE_CRYSTALOSCILLATOR
 
 void sx2_init_gpio(void)
 {
@@ -214,16 +217,21 @@ void sx2_dio_exti_isr_clearflag(void)
 }
 
 
+
 //-- Out port
 
 void out_init_gpio(void)
 {
+//	LL_USART_Disable(OUT_UARTx);
+//	LL_USART_SetTXRXSwap(OUT_UARTx, LL_USART_TXRX_SWAPPED);
+//	LL_USART_Enable(OUT_UARTx);
 }
 
 void out_set_normal(void)
 {
     LL_USART_Disable(OUT_UARTx);
     LL_USART_SetTXPinLevel(OUT_UARTx, LL_USART_TXPIN_LEVEL_STANDARD);
+    LL_USART_SetTXRXSwap(OUT_UARTx, LL_USART_TXRX_SWAPPED);
     LL_USART_Enable(OUT_UARTx);
 }
 
@@ -231,13 +239,14 @@ void out_set_inverted(void)
 {
     LL_USART_Disable(OUT_UARTx);
     LL_USART_SetTXPinLevel(OUT_UARTx, LL_USART_TXPIN_LEVEL_INVERTED);
+    LL_USART_SetTXRXSwap(OUT_UARTx, LL_USART_TXRX_SWAPPED);
     LL_USART_Enable(OUT_UARTx);
 }
 
 
 //-- Button
 
-#define BUTTON                    IO_PA1
+#define BUTTON                    IO_PB3
 
 void button_init(void)
 {
@@ -253,7 +262,7 @@ bool button_pressed(void)
 //-- LEDs
 
 #define LED_GREEN                 IO_PB4
-#define LED_RED                   IO_PB3
+#define LED_RED                   IO_PB5
 
 void leds_init(void)
 {
