@@ -62,8 +62,8 @@
 #define UART_USE_TX
 #define UART_TXBUFSIZE            256
 #define UART_USE_TX_ISR
-//#define UART_USE_RX
-//#define UART_RXBUFSIZE            512
+#define UART_USE_RX
+#define UART_RXBUFSIZE            512
 #define OUT_UARTx                 USART2 // UART_UARTx is not known yet, so define by hand
 
 #define SWUART_USE_TIM17 // debug
@@ -222,9 +222,6 @@ void sx2_dio_exti_isr_clearflag(void)
 
 void out_init_gpio(void)
 {
-//	LL_USART_Disable(OUT_UARTx);
-//	LL_USART_SetTXRXSwap(OUT_UARTx, LL_USART_TXRX_SWAPPED);
-//	LL_USART_Enable(OUT_UARTx);
 }
 
 void out_set_normal(void)

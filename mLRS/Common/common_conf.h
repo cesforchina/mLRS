@@ -51,7 +51,7 @@
 
 #define SETUP_TX_CHANNELS_SOURCE        1 // 0: none, 1: Crsf (pin5), 2: In (In or pin1), 3: mBridge (pin5)
 
-#define SETUP_TX_CHANNEL_ORDER          CHANNEL_ORDER_ETAR
+#define SETUP_TX_CHANNEL_ORDER          CHANNEL_ORDER_AETR
 
 #define SETUP_TX_IN_MODE                0 // 0: IN_CONFIG_SBUS, 1: IN_CONFIG_SBUS_INVERTED
 
@@ -90,16 +90,16 @@
 #define SETUP_RX_BUZZER                 0 // 0: off, 1: LP
 
 
-#define BIND_PHRASE                     "mlrs.0" // string of 6 characters, allowed are 'a'-'z','0'-'9','_','-','#','.'
+#define BIND_PHRASE                     "op.lap" // string of 6 characters, allowed are 'a'-'z','0'-'9','_','-','#','.'
 
 
-#define SETUP_MODE                      MODE_50HZ
-//#define SETUP_MODE                      MODE_31HZ
+//#define SETUP_MODE                      MODE_50HZ
+#define SETUP_MODE                      MODE_31HZ
 //#define SETUP_MODE                      MODE_19HZ
 
 
-//#define SETUP_RF_BAND                    SETUP_FREQUENCY_BAND_915_MHZ_FCC
-#define SETUP_RF_BAND                    SETUP_FREQUENCY_BAND_868_MHZ // that's my privilege :)
+#define SETUP_RF_BAND                    SETUP_FREQUENCY_BAND_915_MHZ_FCC
+//#define SETUP_RF_BAND                    SETUP_FREQUENCY_BAND_868_MHZ // that's my privilege :)
 
 
 #define SETUP_RF_ORTHO                   0 // 0: off, 1: 1/3, 2: 2/3, 3: 3/3

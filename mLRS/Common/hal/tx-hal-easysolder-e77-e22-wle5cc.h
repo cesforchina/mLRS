@@ -67,13 +67,13 @@
 #define UARTB_USE_RX
 #define UARTB_RXBUFSIZE           TX_SERIAL_RXBUFSIZE
 
-//#define UARTB_USE_UART1_REMAPPED // com USB/CLI // PB6,PB7
-//#define UARTB_BAUD                TX_COM_BAUDRATE
-//#define UARTB_USE_TX
-//#define UARTB_TXBUFSIZE           TX_COM_TXBUFSIZE
-//#define UARTB_USE_TX_ISR
-//#define UARTB_USE_RX
-//#define UARTB_RXBUFSIZE           TX_COM_RXBUFSIZE
+#define UARTC_USE_UART1_REMAPPED // com USB/CLI // PB6,PB7
+#define UARTC_BAUD                TX_COM_BAUDRATE
+#define UARTC_USE_TX
+#define UARTC_TXBUFSIZE           TX_COM_TXBUFSIZE
+#define UARTC_USE_TX_ISR
+#define UARTC_USE_RX
+#define UARTC_RXBUFSIZE           TX_COM_RXBUFSIZE
 
 #define UART_USE_UART2 // JR pin5, MBridge // PA2,PA3
 #define UART_BAUD                 400000
@@ -83,11 +83,11 @@
 #define UART_USE_RX
 #define UART_RXBUFSIZE            512
 
-//#ifndef MLRS_DEV_FEATURE_JRPIN5_SDIODE
-//#define JRPIN5_FULL_INTERNAL_ON_TX // does not require an external diode
-//#else
-//#define JRPIN5_RX_TX_INVERT_SWAP_INTERNAL // requires external diode from Tx to Rx
-//#endif
+#ifndef MLRS_DEV_FEATURE_JRPIN5_SDIODE
+#define JRPIN5_FULL_INTERNAL_ON_TX // does not require an external diode
+#else
+#define JRPIN5_RX_TX_INVERT_SWAP_INTERNAL // requires external diode from Tx to Rx
+#endif
 
 #define UARTE_USE_UART2 // in port
 #define UARTE_BAUD                100000 // SBus normal baud rate, is being set later anyhow
