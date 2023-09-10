@@ -45,7 +45,8 @@ uint8_t nr, n;
          if (param_idx == PARAM_INDEX_RF_BAND) { // RF Band
              optstr = SETUP_OPT_RF_BAND_LONGSTR;
          }
-         if (param_idx == PARAM_INDEX_TX_DIVERSITY || param_idx == PARAM_INDEX_RX_DIVERSITY) {
+         if ((SetupParameter[param_idx].ptr == &Setup.Tx[0].Diversity) ||
+             (SetupParameter[param_idx].ptr == &Setup.Rx.Diversity)) {
              optstr = SETUP_OPT_DIVERSITY_LONGSTR;
          }
     } else
@@ -53,8 +54,12 @@ uint8_t nr, n;
         if (param_idx == PARAM_INDEX_RF_BAND) { // RF Band
             optstr = SETUP_OPT_RF_BAND_DISPSTR;
         }
-        if (param_idx == PARAM_INDEX_TX_DIVERSITY || param_idx == PARAM_INDEX_RX_DIVERSITY) {
+        if ((SetupParameter[param_idx].ptr == &Setup.Tx[0].Diversity) ||
+            (SetupParameter[param_idx].ptr == &Setup.Rx.Diversity)) {
             optstr = SETUP_OPT_DIVERSITY_DISPSTR;
+        }
+        if (SetupParameter[param_idx].ptr == &Setup.Rx.SerialLinkMode) {
+            optstr = SETUP_OPT_SERIAL_LINK_MODE_DISPLAYSTR;
         }
     }
 
