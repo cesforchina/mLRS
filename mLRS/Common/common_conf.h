@@ -90,7 +90,7 @@
 #define SETUP_RX_BUZZER                 0 // 0: off, 1: LP
 
 
-#define BIND_PHRASE                     "op.lap" // string of 6 characters, allowed are 'a'-'z','0'-'9','_','-','#','.'
+#define BIND_PHRASE                     "acunss" // string of 6 characters, allowed are 'a'-'z','0'-'9','_','-','#','.'
 
 
 //#define SETUP_MODE                      MODE_50HZ

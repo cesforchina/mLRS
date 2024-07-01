@@ -22,7 +22,7 @@
 #define DEVICE_HAS_IN_ON_JRPIN5_TX
 #define DEVICE_HAS_SERIAL_OR_COM // serial or COM is selected by pressing BUTTON during power on
 #define DEVICE_HAS_DEBUG_SWUART
-#define DEVICE_HAS_I2C_DISPLAY
+#define DEVICE_HAS_I2C_DISPLAY_ROT180
 
 
 #ifdef MLRS_DEV_FEATURE_JRPIN5_SDIODE
