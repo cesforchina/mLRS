@@ -421,13 +421,13 @@ bool ser_or_com_serial(void)
 
 //-- Display I2C
 
-//#define I2C_USE_I2C2              // PA11, PA12
-//#define I2C_CLOCKSPEED_400KHZ     // not all displays seem to work well with I2C_CLOCKSPEED_1000KHZ
-//#define I2C_USE_DMAMODE
-
-#define I2C_USE_I2C1              // PA9, PA10
+#define I2C_USE_I2C2              // PA11, PA12
 #define I2C_CLOCKSPEED_400KHZ     // not all displays seem to work well with I2C_CLOCKSPEED_1000KHZ
 #define I2C_USE_DMAMODE
+
+//#define I2C_USE_I2C1              // PA9, PA10
+//#define I2C_CLOCKSPEED_400KHZ     // not all displays seem to work well with I2C_CLOCKSPEED_1000KHZ
+//#define I2C_USE_DMAMODE
 
 
 //-- POWER
