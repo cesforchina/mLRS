@@ -20,9 +20,10 @@
 
 //#define DEVICE_HAS_DIVERSITY
 #define DEVICE_HAS_JRPIN5
-#define DEVICE_HAS_IN_ON_JRPIN5_TX
+//#define DEVICE_HAS_IN_ON_JRPIN5_TX
 #define DEVICE_HAS_SERIAL_OR_COM // serial or com is selected by pressing BUTTON during power on
 #define DEVICE_HAS_DEBUG_SWUART
+#define DEVICE_HAS_I2C_DISPLAY_ROT180
 
 
 #ifdef MLRS_DEV_FEATURE_JRPIN5_SDIODE
@@ -79,11 +80,11 @@
 #define UART_USE_RX
 #define UART_RXBUFSIZE            512
 
-#ifndef MLRS_DEV_FEATURE_JRPIN5_SDIODE
-#define JRPIN5_FULL_INTERNAL_ON_TX // does not require an external diode
-#else
-#define JRPIN5_RX_TX_INVERT_SWAP_INTERNAL // requires external diode from Tx to Rx
-#endif
+//#ifndef MLRS_DEV_FEATURE_JRPIN5_SDIODE
+//#define JRPIN5_FULL_INTERNAL_ON_TX // does not require an external diode
+//#else
+//#define JRPIN5_RX_TX_INVERT_SWAP_INTERNAL // requires external diode from Tx to Rx
+//#endif
 
 /*
 #define UARTE_USE_UART2_PA2PA3 // in port
@@ -169,6 +170,7 @@ void sx_dio_exti_isr_clearflag(void)
     // there is no EXTI_LINE_44 interrupt flag
 }
 
+/*
 
 //-- SX12xx II & SPIB
 
@@ -244,6 +246,7 @@ void sx2_dio_exti_isr_clearflag(void)
     LL_EXTI_ClearFlag_0_31(SX2_DIO_EXTI_LINE_x);
 }
 
+*/
 
 //-- In port
 // this is nasty, UARTE defines not yet known, but cumbersome to add, so we include the lib
@@ -276,7 +279,7 @@ void in_set_inverted(void)
 
 //-- Button
 
-#define BUTTON                    IO_PA1
+#define BUTTON                    IO_PB3
 
 void button_init(void)
 {
@@ -288,11 +291,48 @@ bool button_pressed(void)
     return gpio_read_activelow(BUTTON);
 }
 
+//-- 5 Way Switch
+
+#define FIVEWAY_SWITCH_CENTER     IO_PC13 // POS_3
+#define FIVEWAY_SWITCH_UP         IO_PA15 // A = POS_2
+#define FIVEWAY_SWITCH_DOWN       IO_PB0 // D = POS_5
+#define FIVEWAY_SWITCH_LEFT       IO_PB2 // C = POS_4
+#define FIVEWAY_SWITCH_RIGHT      IO_PB12 // B = POS_1
+
+void fiveway_init(void)
+{
+    gpio_init(FIVEWAY_SWITCH_CENTER, IO_MODE_INPUT_PU, IO_SPEED_DEFAULT);
+    gpio_init(FIVEWAY_SWITCH_UP, IO_MODE_INPUT_PU, IO_SPEED_DEFAULT);
+    gpio_init(FIVEWAY_SWITCH_DOWN, IO_MODE_INPUT_PU, IO_SPEED_DEFAULT);
+    gpio_init(FIVEWAY_SWITCH_LEFT, IO_MODE_INPUT_PU, IO_SPEED_DEFAULT);
+    gpio_init(FIVEWAY_SWITCH_RIGHT, IO_MODE_INPUT_PU, IO_SPEED_DEFAULT);
+}
+
+uint8_t fiveway_read(void)
+{
+    return ((uint8_t)gpio_read_activelow(FIVEWAY_SWITCH_UP) << KEY_UP) +
+           ((uint8_t)gpio_read_activelow(FIVEWAY_SWITCH_DOWN) << KEY_DOWN) +
+           ((uint8_t)gpio_read_activelow(FIVEWAY_SWITCH_LEFT) << KEY_LEFT) +
+           ((uint8_t)gpio_read_activelow(FIVEWAY_SWITCH_RIGHT) << KEY_RIGHT) +
+           ((uint8_t)gpio_read_activelow(FIVEWAY_SWITCH_CENTER) << KEY_CENTER);
+}
+
+
+//-- Display I2C
+
+#define I2C_USE_I2C2              // PA11, PA12
+#define I2C_CLOCKSPEED_400KHZ     // not all displays seem to work well with I2C_CLOCKSPEED_1000KHZ
+#define I2C_USE_DMAMODE
+
+//#define I2C_USE_I2C1              // PA9, PA10
+//#define I2C_CLOCKSPEED_400KHZ     // not all displays seem to work well with I2C_CLOCKSPEED_1000KHZ
+//#define I2C_USE_DMAMODE
+
 
 //-- LEDs
 
 #define LED_GREEN                 IO_PB4
-#define LED_RED                   IO_PB3
+#define LED_RED                   IO_PB5
 
 void leds_init(void)
 {
