@@ -20,7 +20,7 @@
 
 //#define DEVICE_HAS_DIVERSITY
 #define DEVICE_HAS_JRPIN5
-//#define DEVICE_HAS_IN_ON_JRPIN5_TX
+#define DEVICE_HAS_IN_ON_JRPIN5_RX
 #define DEVICE_HAS_SERIAL_OR_COM // serial or com is selected by pressing BUTTON during power on
 #define DEVICE_HAS_DEBUG_SWUART
 #define DEVICE_HAS_I2C_DISPLAY_ROT180
@@ -28,7 +28,7 @@
 
 #ifdef MLRS_DEV_FEATURE_JRPIN5_SDIODE
   #define DEVICE_HAS_JRPIN5
-  #undef DEVICE_HAS_IN_ON_JRPIN5_TX
+  #undef DEVICE_HAS_IN_ON_JRPIN5_RX
 #endif
 #ifdef MLRS_FEATURE_DIVERSITY
   #define DEVICE_HAS_DIVERSITY
@@ -80,11 +80,11 @@
 #define UART_USE_RX
 #define UART_RXBUFSIZE            512
 
-//#ifndef MLRS_DEV_FEATURE_JRPIN5_SDIODE
-//#define JRPIN5_FULL_INTERNAL_ON_TX // does not require an external diode
-//#else
-//#define JRPIN5_RX_TX_INVERT_SWAP_INTERNAL // requires external diode from Tx to Rx
-//#endif
+#ifndef MLRS_DEV_FEATURE_JRPIN5_SDIODE
+#define JRPIN5_FULL_INTERNAL_ON_RX // does not require an external diode
+#else
+#define JRPIN5_RX_TX_INVERT_INTERNAL // requires external diode from Tx to Rx
+#endif
 
 /*
 #define UARTE_USE_UART2_PA2PA3 // in port
