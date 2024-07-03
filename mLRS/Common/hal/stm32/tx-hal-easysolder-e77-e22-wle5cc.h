@@ -10,7 +10,7 @@
 // 5.Sep.2023: jrpin5 and in simultaneously supported
 
 //#define MLRS_DEV_FEATURE_JRPIN5_SDIODE
-//#define MLRS_FEATURE_DIVERSITY
+#define MLRS_FEATURE_DIVERSITY
 //#define MLRS_FEATURE_NO_DIVERSITY
 //#define MLRS_FEATURE_E77_XTAL // must be defined high, not here, affects main !
 
@@ -23,6 +23,7 @@
 #define DEVICE_HAS_IN_ON_JRPIN5_TX
 #define DEVICE_HAS_SERIAL_OR_COM // serial or com is selected by pressing BUTTON during power on
 #define DEVICE_HAS_DEBUG_SWUART
+#define DEVICE_HAS_I2C_DISPLAY
 
 
 #ifdef MLRS_DEV_FEATURE_JRPIN5_SDIODE
@@ -170,6 +171,7 @@ void sx_dio_exti_isr_clearflag(void)
 }
 
 
+
 //-- SX12xx II & SPIB
 
 #define SPIB_USE_SPI1             // PA5, PA11, PA12
@@ -192,6 +194,8 @@ void sx_dio_exti_isr_clearflag(void)
 #define SX2_DIO_EXTI_IRQn             EXTI15_10_IRQn
 #define SX2_DIO_EXTI_IRQHandler       EXTI15_10_IRQHandler
 //#define SX2_DIO_EXTI_IRQ_PRIORITY   11
+
+#define SX2_USE_CRYSTALOSCILLATOR
 
 void sx2_init_gpio(void)
 {
@@ -245,6 +249,7 @@ void sx2_dio_exti_isr_clearflag(void)
 }
 
 
+
 //-- In port
 // this is nasty, UARTE defines not yet known, but cumbersome to add, so we include the lib
 #ifdef DEVICE_HAS_IN
@@ -288,11 +293,87 @@ bool button_pressed(void)
     return gpio_read_activelow(BUTTON);
 }
 
+/*
+
+//-- 5 Way Switch
+
+#define FIVEWAY_SWITCH_CENTER     IO_PC13 // POS_3
+#define FIVEWAY_SWITCH_UP         IO_PA15 // A = POS_2
+#define FIVEWAY_SWITCH_DOWN       IO_PB0 // D = POS_5
+#define FIVEWAY_SWITCH_LEFT       IO_PB2 // C = POS_4
+#define FIVEWAY_SWITCH_RIGHT      IO_PB12 // B = POS_1
+
+void fiveway_init(void)
+{
+    gpio_init(FIVEWAY_SWITCH_CENTER, IO_MODE_INPUT_PU, IO_SPEED_DEFAULT);
+    gpio_init(FIVEWAY_SWITCH_UP, IO_MODE_INPUT_PU, IO_SPEED_DEFAULT);
+    gpio_init(FIVEWAY_SWITCH_DOWN, IO_MODE_INPUT_PU, IO_SPEED_DEFAULT);
+    gpio_init(FIVEWAY_SWITCH_LEFT, IO_MODE_INPUT_PU, IO_SPEED_DEFAULT);
+    gpio_init(FIVEWAY_SWITCH_RIGHT, IO_MODE_INPUT_PU, IO_SPEED_DEFAULT);
+}
+
+uint8_t fiveway_read(void)
+{
+    return ((uint8_t)gpio_read_activelow(FIVEWAY_SWITCH_UP) << KEY_UP) +
+           ((uint8_t)gpio_read_activelow(FIVEWAY_SWITCH_DOWN) << KEY_DOWN) +
+           ((uint8_t)gpio_read_activelow(FIVEWAY_SWITCH_LEFT) << KEY_LEFT) +
+           ((uint8_t)gpio_read_activelow(FIVEWAY_SWITCH_RIGHT) << KEY_RIGHT) +
+           ((uint8_t)gpio_read_activelow(FIVEWAY_SWITCH_CENTER) << KEY_CENTER);
+}
+
+*/
+
+//-- 5 Way Switch
+// template for resistor chain Vcc - 4.7k - down - 1k - left - 2.2k - right - 4.7k - up - 4.7k - center
+
+#define FIVEWAY_ADCx              ADC
+#define FIVEWAY_ADC_IO            IO_PB3 // ADC_IN2
+#define FIVEWAY_ADC_CHANNELx      LL_ADC_CHANNEL_2
+
+extern "C" { void delay_us(uint32_t us); }
+
+void fiveway_init(void)
+{
+    adc_init_begin(FIVEWAY_ADCx);
+    adc_init_one_channel(FIVEWAY_ADCx);
+    adc_config_channel(FIVEWAY_ADCx, LL_ADC_REG_RANK_1, FIVEWAY_ADC_CHANNELx, FIVEWAY_ADC_IO);
+    adc_enable(FIVEWAY_ADCx);
+    delay_us(100);
+    adc_start_conversion(FIVEWAY_ADCx);
+}
+
+uint16_t fiveway_adc_read(void)
+{
+    return LL_ADC_REG_ReadConversionData12(FIVEWAY_ADCx);
+}
+
+uint8_t fiveway_read(void)
+{
+    uint16_t adc = LL_ADC_REG_ReadConversionData12(FIVEWAY_ADCx);
+    if (adc < (0+200)) return (1 << KEY_DOWN); // 0
+    if (adc > (655-200) && adc < (655+200)) return (1 << KEY_LEFT); // 655
+    if (adc > (1595-200) && adc < (1595+200)) return (1 << KEY_RIGHT); // 1595
+    if (adc > (2505-200) && adc < (2505+200)) return (1 << KEY_UP); // 2505
+    if (adc > (3054-200) && adc < (3054+200)) return (1 << KEY_CENTER); // 3054
+    return 0;
+}
+
+
+//-- Display I2C
+
+//#define I2C_USE_I2C2              // PA11, PA12
+//#define I2C_CLOCKSPEED_400KHZ     // not all displays seem to work well with I2C_CLOCKSPEED_1000KHZ
+//#define I2C_USE_DMAMODE
+
+#define I2C_USE_I2C1              // PA9, PA10
+#define I2C_CLOCKSPEED_400KHZ     // not all displays seem to work well with I2C_CLOCKSPEED_1000KHZ
+#define I2C_USE_DMAMODE
+
 
 //-- LEDs
 
 #define LED_GREEN                 IO_PB4
-#define LED_RED                   IO_PB3
+#define LED_RED                   IO_PB5
 
 void leds_init(void)
 {
